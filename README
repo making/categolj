@@ -1,0 +1,21 @@
+# categolj
+
+FIXME: write description
+
+## Usage
+
+At first
+$ lein deps
+
+Start Server
+$ lein run server
+
+## Installation
+
+FIXME: write
+
+## License
+
+Copyright (C) 2010 Toshiaki Maki
+
+Distributed under the Eclipse Public License, the same as Clojure.

@@ -42,12 +42,12 @@ ul {
     text-decoration: none;
 }
 
-#navigation {
+#sidebar {
     float: left;
     width: 200px;
 }
 
-#navigation h3 {
+#sidebar h3 {
     font-size: 10px;
     color: #eee; 
     background-color: #666;

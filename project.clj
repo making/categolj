@@ -1,5 +1,6 @@
 (defproject categolj "1.0.0-SNAPSHOT"
   :description "FIXME: write"
+  :repositories {"scala-tools" "http://scala-tools.org/repo-releases"}
   :dependencies [[org.clojure/clojure "1.3.0-alpha1"]
                  [org.clojure.contrib/def "1.3.0-alpha1"]
                  [org.clojure.contrib/singleton "1.3.0-alpha1"]
@@ -7,10 +8,14 @@
                  [org.slf4j/slf4j-api "1.6.1"]
                  [ch.qos.logback/logback-core "0.9.24"]
                  [ch.qos.logback/logback-classic "0.9.24"]
+                 [commons-lang/commons-lang "2.5"]
                  [ring "0.3.1"]
+                 [compojure "0.5.2"]
                  [enlive "1.0.0-SNAPSHOT"]
+                 [org.markdownj/markdownj "0.3.0-1.0.2b4"]
                  [org.bituf/sqlrat "0.2"]
-                 ]
+                 [org.hsqldb/hsqldb "2.0.0"]]
+
   :dev-dependencies [[swank-clojure "1.3.0-SNAPSHOT"]
                      [lein-javac "1.2.1-SNAPSHOT"]
                      [lein-run "1.0.0-SNAPSHOT"]

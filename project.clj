@@ -36,4 +36,5 @@
   :javac-fork "true"
   :jar-exclusions [#"(?:^|/).svn/"]
   :run-aliases {:server [am.ik.categolj.run -main]}
+  :aot [am.ik.categolj.daccess.mock.daccess]
   )

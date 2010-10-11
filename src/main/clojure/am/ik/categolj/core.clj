@@ -1,31 +1,15 @@
 (ns am.ik.categolj.core
   (:use [ring.adapter.jetty])
   (:use [ring.middleware reload stacktrace static])
+  (:use [clojure.contrib.singleton])
   (:use [compojure core])
   (:use [am.ik.categolj.utils.string-utils])
+  (:use [am.ik.categolj.daccess daccess entities])
   (:require [net.cgrand.enlive-html :as en])
   (:require [compojure.route :as route])
   (:require [clojure.contrib.logging :as log])
-  (:require [clojure.java.io :as io]))
-
-;; test data
-(def *data-list* [{:id 43, 
-              :title "ELPA(Emacs Lisp Package Archive) を使う", 
-              :created-at (.parse (java.text.SimpleDateFormat. "yyyy-MM-dd HH:mm:ss") "2010-10-02 11:35:22")
-              :updated-at (.parse (java.text.SimpleDateFormat. "yyyy-MM-dd HH:mm:ss") "2010-10-02 11:54:29")
-              :content "以下を*scratch*に貼り付けてCtrl+jで.emacs.elがupdateされる。"
-              :category ["開発環境" "IDE" "Emacs"]
-              },
-             {:id 44, 
-              :title "WindowsでLeiningen", 
-              :created-at (.parse (java.text.SimpleDateFormat. "yyyy-MM-dd HH:mm:ss") "2010-10-05 02:24:44")
-              :updated-at (.parse (java.text.SimpleDateFormat. "yyyy-MM-dd HH:mm:ss") "2010-10-05 02:47:30")
-              :content "知らない間にLeiningenがWindows対応していました"
-              :category ["Programming" "Lisp" "Clojure" "Leiningen"]
-              },
-             ])
-;;
-
+  (:require [clojure.java.io :as io])
+  (:import [com.petebevin.markdown MarkdownProcessor]))
 
 (defn ^java.net.URL get-resource [filename]
   (.getResource (.getContextClassLoader (Thread/currentThread)) filename))
@@ -33,6 +17,8 @@
 (def *config* (read-string (slurp (get-resource "config.clj"))))
 (def *theme-dir* (str "theme/" (:theme *config*)))
 (def *content-type* (str "text/html;charset=" (:charset *config*)))
+
+(def *dac* (global-singleton #(.newInstance (Class/forName (:daccess *config*)))))
 
 (defn get-template [filename]
   (str *theme-dir* "/pages/" filename))
@@ -42,6 +28,8 @@
 
 (defn format-data [^java.util.Date date]
   (.format (java.text.SimpleDateFormat. "yyyy/MM/dd HH:mm:ss") date))
+
+(def *markdown* (per-thread-singleton #(MarkdownProcessor.)))
 
 ;; snipetts
 (en/defsnippet categolj-header
@@ -56,7 +44,7 @@
   [:div#sidebar]
   []
   [:.post]
-  (en/clone-for [{:keys [id title]} *data-list*]
+  (en/clone-for [{:keys [id title]} (get-entries-by-page (*dac*) 1 (:count-per-oage *config*))]
                 [:.post :a]
                 (en/do-> (en/content title)
                          (en/set-attr :href (get-entry-view-url id title)))
@@ -75,7 +63,7 @@
   (en/do-> (en/content title)
            (en/set-attr :href (get-entry-view-url id title)))
   [:.article-content]
-  (en/content content)
+  (en/html-content (.markdown ^MarkdownProcessor (*markdown*) content))
   [:.article-created-at]
   (en/content (format-data created-at))
   [:.article-updated-at]
@@ -111,17 +99,17 @@
 ;; view
 (defn hello [req]
   (res200 (categolj-layout (:title *config*) 
-                           (en/substitute (map categolj-content *data-list*)))))
+                           (en/substitute (map categolj-content (get-entries-by-page (*dac*) 1 (:count-per-oage *config*)))))))
 
 (defn view [id]
   (log/debug id)
   (let [id (Integer/parseInt id)]
     (res200 (categolj-layout (:title *config*) 
-                             (en/substitute (categolj-content (first (filter #(= (:id %) id) *data-list*))))))))
+                             (en/substitute (categolj-content (get-entry-by-id (*dac*) id)))))))
   
 (defn not-found []
   (res404 (categolj-layout "Error" 
-                           (en/html-content "<h2>404ないで〜</h2>"))))
+                           (en/html-content "<h2>404 Not Found</h2>"))))
 ;;
 
 
@@ -158,7 +146,7 @@
          (trace-request excludes)
          (wrap-stacktrace)
          (wrap-static (.getPath (get-resource (str *theme-dir* "/public/"))) (:static-dir *config*))
-         (wrap-reload '(am.ik.categolj.core))
+         (wrap-reload '(am.ik.categolj.core)) ;; hot reloading
          (trace-response excludes)
          )))
 ;;

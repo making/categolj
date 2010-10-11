@@ -1,6 +1,7 @@
 (defproject categolj "1.0.0-SNAPSHOT"
   :description "FIXME: write"
-  :repositories {"scala-tools" "http://scala-tools.org/repo-releases"}
+  :repositories {"scala-tools" "http://scala-tools.org/repo-releases",
+                 "amateras" "http://amateras.sourceforge.jp/mvn/"}
   :dependencies [[org.clojure/clojure "1.3.0-alpha1"]
                  [org.clojure.contrib/def "1.3.0-alpha1"]
                  [org.clojure.contrib/singleton "1.3.0-alpha1"]
@@ -16,8 +17,10 @@
                  [org.bituf/sqlrat "0.2"]
                  [org.bituf/clj-dbcp "0.1"][org.bituf/clj-dbcp "0.1"]
                  [org.hsqldb/hsqldb "2.0.0"]
-                 [org.apache.cassandra/cassandra "0.6.5"]
-                 [org.apache.thrift/libthrift "r917130"]]
+                 ;; [org.apache.cassandra/cassandra "0.6.5"]
+                 ;; [org.apache.thrift/libthrift "r917130"]
+                 [jp.sf.amateras.mirage/mirage "1.0.5"]
+                 ]
 
   :dev-dependencies [[swank-clojure "1.3.0-SNAPSHOT"]
                      [lein-javac "1.2.1-SNAPSHOT"]

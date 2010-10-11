@@ -3,9 +3,11 @@
 FIXME: write description
 
 ## Usage
+After install Leiningen
 
 At first
 $ lein deps
+$ lein javac
 
 Start Server
 $ lein run server

@@ -55,7 +55,7 @@
   [:div#sidebar]
   []
   [:.post]
-  (en/clone-for [{:keys [id title]} (get-entries-by-page (*dac*) 1 (:count-per-oage *config*))]
+  (en/clone-for [{:keys [id title]} (get-entries-by-page (*dac*) 1 (:count-per-page *config*))]
                 [:.post :a]
                 (en/do-> (en/content title)
                          (en/set-attr :href (get-entry-view-url id title)))
@@ -121,7 +121,7 @@
 (defn hello [req]
   (res200 (categolj-layout (:title *config*) 
                            (en/substitute (map categolj-content
-                                               (get-entries-by-page (*dac*) 1 (:count-per-oage *config*))))
+                                               (get-entries-by-page (*dac*) 1 (:count-per-page *config*))))
                                                    
                            nil)))
 

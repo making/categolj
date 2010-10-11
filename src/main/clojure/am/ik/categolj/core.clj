@@ -19,7 +19,10 @@
 (def *theme-dir* (str "theme/" (:theme *config*)))
 (def *content-type* (str "text/html;charset=" (:charset *config*)))
 
-(def *dac* (global-singleton #(.newInstance (Class/forName (:daccess *config*)))))
+;; load daccess
+(require [(get-in *config* [:daccess :ns]) :as 'dac])
+(def *dac* (global-singleton
+            #(dac/create-daccess (get-in *config* [:daccess :params]))))
 
 (defn get-template [filename]
   (str *theme-dir* "/pages/" filename))
@@ -107,7 +110,7 @@
    :headers {"Content-Type" *content-type*}
    :body body})
 ;;
-    
+
 ;; view
 (defn hello [req]
   (res200 (categolj-layout (:title *config*) 
@@ -158,15 +161,15 @@
 ;; app
 (def app
      (let [excludes (:static-dir *config*)]
-     (-> #'categolj
-         (trace-request excludes)
-         (wrap-stacktrace)
-         (wrap-static (.getPath (get-resource (str *theme-dir* "/public/"))) (:static-dir *config*))
-         (wrap-reload '(am.ik.categolj.core)) ;; hot reloading
-         (trace-response excludes)
-         )))
+       (-> #'categolj
+           (trace-request excludes)
+           (wrap-stacktrace)
+           (wrap-static (.getPath (get-resource (str *theme-dir* "/public/"))) (:static-dir *config*))
+           (wrap-reload '(am.ik.categolj.core)) ;; hot reloading
+           (trace-response excludes)
+           )))
 ;;
-     
+
 (defn boot [& [port]]
   (log/info "start server")
   (run-jetty app {:port (:port *config*)}))

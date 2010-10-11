@@ -3,5 +3,6 @@
  :port 8080,
  :charset "UTF-8",
  :static-dir ["/css/" "/images/" "/js/"],
- :daccess "am.ik.categolj.daccess.mock.daccess.MockDataAccess",
+ :daccess {:ns am.ik.categolj.daccess.mock.daccess,
+           :params {}},
  :count-per-page 5}

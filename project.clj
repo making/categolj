@@ -14,7 +14,10 @@
                  [enlive "1.0.0-SNAPSHOT"]
                  [org.markdownj/markdownj "0.3.0-1.0.2b4"]
                  [org.bituf/sqlrat "0.2"]
-                 [org.hsqldb/hsqldb "2.0.0"]]
+                 [org.bituf/clj-dbcp "0.1"][org.bituf/clj-dbcp "0.1"]
+                 [org.hsqldb/hsqldb "2.0.0"]
+                 [org.apache.cassandra/cassandra "0.6.5"]
+                 [org.apache.thrift/libthrift "r917130"]]
 
   :dev-dependencies [[swank-clojure "1.3.0-SNAPSHOT"]
                      [lein-javac "1.2.1-SNAPSHOT"]
@@ -35,6 +38,4 @@
   :java-source-path "src/main/java"
   :javac-fork "true"
   :jar-exclusions [#"(?:^|/).svn/"]
-  :run-aliases {:server [am.ik.categolj.run -main]}
-  :aot [am.ik.categolj.daccess.mock.daccess]
-  )
+  :run-aliases {:server [am.ik.categolj.run -main]})

@@ -112,29 +112,35 @@
 ;;
 
 ;; view
-(defn hello [req]
-  (res200 (categolj-layout (:title *config*) 
-                           (en/substitute (map categolj-content
-                                               (get-entries-by-page (*dac*) 1 (:count-per-oage *config*))))
-                           nil)))
-
-(defn view [id]
-  (log/debug id)
-  (let [id (Integer/parseInt id) entry (get-entry-by-id (*dac*) id)]
-    (res200 (categolj-layout (:title *config*) 
-                             (en/substitute (categolj-content entry))
-                             (en/html-content (get-category-anchor (:category entry)))))))
 
 (defn not-found [req]
   (res404 (categolj-layout "Error" 
                            (en/html-content (str "<h2>404 Not Found</h2>" "<p>" (:uri req) " is not found.</p>"))
                            nil)))
+
+(defn hello [req]
+  (res200 (categolj-layout (:title *config*) 
+                           (en/substitute (map categolj-content
+                                               (get-entries-by-page (*dac*) 1 (:count-per-oage *config*))))
+                                                   
+                           nil)))
+
+(defn view [req]
+  (println req)
+  (let [id (Integer/parseInt (get-in req [:params "id"])),
+        entry (get-entry-by-id (*dac*) id)]
+    (log/debug id)
+    (if entry
+      (res200 (categolj-layout (:title *config*) 
+                               (en/substitute (categolj-content entry))
+                               (en/html-content (get-category-anchor (:category entry)))))
+      (not-found req))))
 ;;
 
 
 ;; rooting
 (defroutes categolj
-  (GET ["/entry/view/id/:id*", :id #"[0-9]+"] [id] (view id))
+  (GET ["/entry/view/id/:id*", :id #"[0-9]+"] req (view req))
   (GET "/" req (hello req))
   (ANY "*" req (not-found req))
   )

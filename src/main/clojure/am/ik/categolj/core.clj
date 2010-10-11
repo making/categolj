@@ -9,6 +9,7 @@
   (:require [compojure.route :as route])
   (:require [clojure.contrib.logging :as log])
   (:require [clojure.java.io :as io])
+  (:require [clojure.string :as str])
   (:import [com.petebevin.markdown MarkdownProcessor]))
 
 (defn ^java.net.URL get-resource [filename]
@@ -25,6 +26,13 @@
 
 (defn get-entry-view-url [id title]
   (str "/entry/view/id/" id "/" (if title (str "title/" title "/"))))
+
+(defn get-category-url [category-seq]
+  (map (fn [x i] [x (str "/category/" (str/join "/" (take (inc i) category-seq)))])
+       category-seq (range (count category-seq))))
+
+(defn get-category-anchor [category-seq]
+  (str/join "::" (for [[name url] (get-category-url category-seq)] (str "<span class='category'><a href='" url "'>" name "</a></span>"))))
 
 (defn format-data [^java.util.Date date]
   (.format (java.text.SimpleDateFormat. "yyyy/MM/dd HH:mm:ss") date))
@@ -57,7 +65,7 @@
 
 (en/defsnippet categolj-content
   (get-template "main.html")
-  [:div#contents]
+  [:div.contents]
   [{:keys [id title content created-at updated-at category]}]
   [:.article-title :a]  
   (en/do-> (en/content title)
@@ -69,18 +77,22 @@
   [:.article-updated-at]
   (en/content (format-data updated-at))
   [:.article-category]
-  (en/content (apply str (interpose "::" category))))
+  (en/html-content (get-category-anchor category)))
 ;;
 
 ;; templates
 (en/deftemplate categolj-layout
   (get-template "layout.html")
-  [title body]
+  [title body contents-header]
   [:head] (en/substitute (categolj-header title))
   [:div#header :h1 :a] (en/do-> (en/content (:title *config*)) 
                                 (en/set-attr :href "/"))
   [:div#sidebar] (en/substitute (categolj-sidebar))
-  [:div#contents] body
+  [:h2.contents-header]
+  (if contents-header
+    (en/do-> contents-header
+             (en/set-attr :id "contents-header")))
+  [:div.contents] body
   [:div#footer] (en/substitute (categolj-footer)))
 ;;
 
@@ -99,17 +111,21 @@
 ;; view
 (defn hello [req]
   (res200 (categolj-layout (:title *config*) 
-                           (en/substitute (map categolj-content (get-entries-by-page (*dac*) 1 (:count-per-oage *config*)))))))
+                           (en/substitute (map categolj-content
+                                               (get-entries-by-page (*dac*) 1 (:count-per-oage *config*))))
+                           nil)))
 
 (defn view [id]
   (log/debug id)
-  (let [id (Integer/parseInt id)]
+  (let [id (Integer/parseInt id) entry (get-entry-by-id (*dac*) id)]
     (res200 (categolj-layout (:title *config*) 
-                             (en/substitute (categolj-content (get-entry-by-id (*dac*) id)))))))
-  
-(defn not-found []
+                             (en/substitute (categolj-content entry))
+                             (en/html-content (get-category-anchor (:category entry)))))))
+
+(defn not-found [req]
   (res404 (categolj-layout "Error" 
-                           (en/html-content "<h2>404 Not Found</h2>"))))
+                           (en/html-content (str "<h2>404 Not Found</h2>" "<p>" (:uri req) " is not found.</p>"))
+                           nil)))
 ;;
 
 
@@ -117,7 +133,7 @@
 (defroutes categolj
   (GET ["/entry/view/id/:id*", :id #"[0-9]+"] [id] (view id))
   (GET "/" req (hello req))
-  (ANY "*" [] (not-found))
+  (ANY "*" req (not-found req))
   )
 ;;
 

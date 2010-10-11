@@ -14,7 +14,12 @@
           :title "ELPA(Emacs Lisp Package Archive) を使う", 
           :created-at (.parse (java.text.SimpleDateFormat. "yyyy-MM-dd HH:mm:ss") "2010-10-02 11:35:22")
           :updated-at (.parse (java.text.SimpleDateFormat. "yyyy-MM-dd HH:mm:ss") "2010-10-02 11:54:29")
-          :content "以下を`*scratch*`に貼り付けて`Ctrl+j`で.emacs.elがupdateされる。"
+          :content "以下を`*scratch*`に貼り付けて`Ctrl+j`で.emacs.elがupdateされる。
+
+    aaa
+    bbb
+
+"
           :category ["開発環境" "IDE" "Emacs"]
           },
          {:id 44, 

@@ -26,7 +26,10 @@
    (first (filter #(= (:id %) id) *data*)))
   (get-entries-by-page 
    [this page count]
-   *data*))
+   *data*)
+  (get-total-count
+   [this]
+   (count *data*)))
 
 (defn create-daccess [params]
   (MockDataAccess.))

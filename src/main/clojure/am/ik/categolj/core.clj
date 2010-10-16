@@ -55,7 +55,7 @@
   [:div#sidebar]
   []
   [:.post]
-  (en/clone-for [{:keys [id title]} (get-entries-by-page (*dac*) 1 (:count-per-page *config*))]
+  (en/clone-for [{:keys [id title]} (get-entries-by-page (*dac*) 1 (:count-of-recently *config*))]
                 [:.post :a]
                 (en/do-> (en/content title)
                          (en/set-attr :href (get-entry-view-url id title)))
@@ -86,7 +86,7 @@
 ;; templates
 (en/deftemplate categolj-layout
   (get-template "layout.html")
-  [title body contents-header]
+  [title body contents-header current-page total-page]
   [:head] (en/substitute (categolj-header title))
   [:div#header :h1 :a] (en/do-> (en/content (:title *config*)) 
                                 (en/set-attr :href "/"))
@@ -96,6 +96,12 @@
     (en/do-> contents-header
              (en/set-attr :id "contents-header")))
   [:div.contents] body
+  [:.pages :.page]
+  (en/clone-for [i (range 1 (if (pos? total-page) (+ total-page 2) 0))]
+                [:.page]                
+                (en/html-content (if (= i current-page)
+                                   (str "<strong>" i "</strong>")
+                                   (str "<a href='/page/" i "/'>" i "</a>"))))
   [:div#footer] (en/substitute (categolj-footer)))
 ;;
 
@@ -116,24 +122,33 @@
 (defn not-found [req]
   (res404 (categolj-layout "Error" 
                            (en/html-content (str "<h2>404 Not Found</h2>" "<p>" (:uri req) " is not found.</p>"))
-                           nil)))
+                           nil
+                           1
+                           0)))
 
-(defn hello [req]
-  (res200 (categolj-layout (:title *config*) 
-                           (en/substitute (map categolj-content
-                                               (get-entries-by-page (*dac*) 1 (:count-per-page *config*))))
-                                                   
-                           nil)))
+(defn hello
+  "if the request parameter don't contain page, use default page 1."
+  [req]
+  (let [page (get-in req [:params "page"])
+        current-page (if page (Integer/parseInt page) 1)
+        total-page (int (/ (or (get-total-count (*dac*)) 0) (:count-per-page *config*)))]  
+    (res200 (categolj-layout (:title *config*) 
+                             (en/substitute (map categolj-content
+                                                 (get-entries-by-page (*dac*) current-page (:count-per-page *config*))))
+                             nil
+                             current-page
+                             total-page))))
 
 (defn view [req]
-  (println req)
   (let [id (Integer/parseInt (get-in req [:params "id"])),
         entry (get-entry-by-id (*dac*) id)]
     (log/debug id)
     (if entry
       (res200 (categolj-layout (:title *config*) 
                                (en/substitute (categolj-content entry))
-                               (en/html-content (get-category-anchor (:category entry)))))
+                               (en/html-content (get-category-anchor (:category entry)))
+                               1
+                               0))
       (not-found req))))
 ;;
 
@@ -141,6 +156,7 @@
 ;; rooting
 (defroutes categolj
   (GET ["/entry/view/id/:id*", :id #"[0-9]+"] req (view req))
+  (GET ["/page/:page*", :page #"[0-9]+"] req (hello req))
   (GET "/" req (hello req))
   (ANY "*" req (not-found req))
   )

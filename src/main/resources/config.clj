@@ -21,4 +21,5 @@
                            CONTENT VARCHAR(256), 
                            CREATED_AT TIMESTAMP, 
                            UPDATED_AT TIMESTAMP)"}},
- :count-per-page 5}
+ :count-per-page 3,
+ :count-of-recently 5}

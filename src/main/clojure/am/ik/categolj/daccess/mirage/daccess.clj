@@ -52,7 +52,15 @@
            (.getSqlManager session)
            EntryEntity
            "SELECT * FROM ENTITY LIMIT ? OFFSET ?"
-           (into-array [count (* count (dec page))]))))))
+           (into-array [count (* count (dec page))])))))
+  (get-total-count
+   [this]
+   (with-tx [session]
+     (.getSingleResultBySql
+      (.getSqlManager session)
+      Integer
+      "SELECT COUNT(ID) FROM ENTITY")))
+  )
 
 ;; (def (create-session "org.hsqldb.jdbcDriver" "hsqldb" "mem:categolj" "sa" ""))
 (defn ^Session create-session [classname subprotocol subname user password]

@@ -30,6 +30,12 @@
 (defn get-entry-view-url [id title]
   (str "/entry/view/id/" id "/" (if title (str "title/" title "/"))))
 
+(defn get-entry-edit-url [id]
+  (str "/entry/edit/id/" id "/"))
+
+(defn get-entry-delete-url [id]
+  (str "/entry/delete/id/" id "/"))
+
 (defn get-category-url [category-seq]
   (map (fn [x i] [x (str "/category/" (str/join "/" (take (inc i) category-seq)))])
        category-seq (range (count category-seq))))
@@ -41,6 +47,9 @@
   (.format (java.text.SimpleDateFormat. "yyyy/MM/dd HH:mm:ss") date))
 
 (def *markdown* (per-thread-singleton #(MarkdownProcessor.)))
+
+(defn logedin? "stub" []
+  false)
 
 ;; snipetts
 (en/defsnippet categolj-header
@@ -66,6 +75,15 @@
   [:div#footer]
   [])
 
+(en/defsnippet categolj-edit
+  (get-template "edit.html")
+  [:.edit]
+  [id]
+  [:.edit-link]
+  (en/set-attr :href (get-entry-edit-url id))
+  [:.delete-link]
+  (en/set-attr :href (str "/entry/delete/id/" id "/")))
+
 (en/defsnippet categolj-content
   (get-template "main.html")
   [:div.contents]
@@ -75,6 +93,9 @@
            (en/set-attr :href (get-entry-view-url id title)))
   [:.article-content]
   (en/html-content (.markdown ^MarkdownProcessor (*markdown*) content))
+  [:.edit-menu :.edit]
+  (if (logedin?)
+    (en/substitute (categolj-edit id)))
   [:.article-created-at]
   (en/content (format-data created-at))
   [:.article-updated-at]
@@ -97,6 +118,7 @@
              (en/set-attr :id "contents-header")))
   [:div.contents] body
   [:.pages :.page]
+  ;; show paging navigation if total page is greater than 2.
   (en/clone-for [i (range 1 (if (pos? total-page) (+ total-page 2) 0))]
                 [:.page]                
                 (en/html-content (if (= i current-page)
@@ -123,8 +145,9 @@
   (res404 (categolj-layout "Error" 
                            (en/html-content (str "<h2>404 Not Found</h2>" "<p>" (:uri req) " is not found.</p>"))
                            nil
-                           1
-                           0)))
+                           1 ; current page is 1.
+                           0 ; no paging navigation.
+                           )))
 
 (defn hello
   "if the request parameter don't contain page, use default page 1."
@@ -146,9 +169,10 @@
     (if entry
       (res200 (categolj-layout (:title *config*) 
                                (en/substitute (categolj-content entry))
-                               (en/html-content (get-category-anchor (:category entry)))
+                               (en/html-content (get-category-anchor (:category entry))) ; add category header 
                                1
-                               0))
+                               0 ; single page
+                               ))
       (not-found req))))
 ;;
 

@@ -51,7 +51,7 @@
           (.getResultListBySql
            (.getSqlManager session)
            EntryEntity
-           "SELECT * FROM ENTITY LIMIT ? OFFSET ?"
+           "SELECT * FROM ENTITY ORDER BY UPDATED_AT DESC LIMIT ? OFFSET ?"
            (into-array [count (* count (dec page))])))))
   (get-total-count
    [this]

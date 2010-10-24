@@ -1,0 +1,52 @@
+<div class='contents edit-form'>
+  <h2><a class='article-title'><!-- title --></a></h2>
+  <form method='POST' name='edit-form'>
+    <ul>
+      <li>
+        <label for='field-title' class='desc'>title</label>
+        <div>
+          <input name='title' type='text' id='field-title' class='field text medium' />
+        </div>
+      </li>
+      <li>
+        <label for='field-id' class='desc'>id</label>
+        <div>
+          <input name='id' type='text' id='field-id' class='field text medium' disabled='disabled' />
+        </div>
+      </li>
+      <li>
+        <label for='field-category' class='desc'>category</label>
+        <div>
+          <input name='category' type='text' id='field-category' class='field text medium' />
+        </div>
+      </li>
+      <li>
+        <label for='field-body' class='desc'>body</label>
+        <div>      
+          <textarea name='body' id='field-body' class='textarea' />
+        </div>
+      </li>
+      <li>
+        <label for='field-created-at' class='desc'>created_at</label>
+        <div>
+          <input name='created-at' type='text' id='field-created-at' class='field text medium' />
+        </div>
+      </li>
+      <li>
+        <label for='field-updated-at' class='desc'>updated_at</label>
+        <div>
+          <input name='updated-at' type='text' id='field-updated-at' class='field text medium' />
+        </div>
+      </li>
+      <li>
+        <label for='field-update-date' class='desc'>update_date</label>
+        <div>
+          <input name='update-date' type='checkbox' id='field-update-date' class='field checkbox' />
+        </div>
+      </li>
+      <li class='buttons'>
+        <input name='submit' type='submit' value='submit' />
+      </li>
+    </ul>
+  </form>
+</div>

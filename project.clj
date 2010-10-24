@@ -14,8 +14,6 @@
                  [compojure "0.5.2"]
                  [enlive "1.0.0-SNAPSHOT"]
                  [org.markdownj/markdownj "0.3.0-1.0.2b4"]
-                 [org.bituf/sqlrat "0.2"]
-                 [org.bituf/clj-dbcp "0.1"][org.bituf/clj-dbcp "0.1"]
                  [org.hsqldb/hsqldb "2.0.0"]
                  ;; [org.apache.cassandra/cassandra "0.6.5"]
                  ;; [org.apache.thrift/libthrift "r917130"]

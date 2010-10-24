@@ -275,6 +275,9 @@ input.text, input.search, textarea.textarea{
     border-bottom:1px solid #ddd;
     background:#fff url(../images/form/fieldbg.gif) repeat-x top;
 }
+input.checkbox {
+    text-align: left;
+}
 select.select{
     padding:1px 0 0 0;
 }

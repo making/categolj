@@ -1,4 +1,5 @@
 (ns am.ik.categolj.daccess.mirage.daccess
+  (:use [am.ik.categolj.utils date-utils])
   (:use [am.ik.categolj.daccess daccess entities])
   (:use [clojure.contrib singleton])
   (:require [clojure.contrib.logging :as log])
@@ -34,6 +35,19 @@
       :category ["Test" "Sample"] ; stub
       })))
 
+(defn ^EntryEntity record-to-entity [param]
+  (if param
+    (EntryEntity. (let [id (:id param)]
+                    (if (string? id) (Long/valueOf (:id param)) id))
+                  (:title param)
+                  (:content param)
+                  (let [created-at (:created-at param)]
+                    (if (string? created-at) (parse-date created-at) created-at))
+                  (let [updated-at (:updated-at param)]
+                    (if (string? updated-at) (parse-date updated-at) updated-at))
+                  ; category ?
+                  )))
+
 (defrecord MirageDataAccess [^Session session]
   DataAccess
   (get-entry-by-id 
@@ -60,6 +74,19 @@
       (.getSqlManager session)
       Integer
       "SELECT COUNT(ID) FROM ENTITY")))
+  (update-entry
+   [this entry]
+   (log/debug "entry" entry)
+   (let [entity (record-to-entity entry)]
+     (log/debug "entity" (bean entity))
+     (with-tx [session]
+       (.updateEntity
+        (.getSqlManager session)
+        entity
+        ))))
+  (delete-entry-by-id
+   [this id]
+   )
   )
 
 ;; (def (create-session "org.hsqldb.jdbcDriver" "hsqldb" "mem:categolj" "sa" ""))

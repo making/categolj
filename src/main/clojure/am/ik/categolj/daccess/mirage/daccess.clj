@@ -54,36 +54,37 @@
    [this id]
    (with-tx [session]
      (entity-to-record
-      (.findEntity (.getSqlManager session)
-                   EntryEntity
-                   (into-array [id])))))
+      (.getSingleResult (.getSqlManager session)
+                        EntryEntity
+                        "sql/get-entry-by-id.sql"
+                        {"id" id}))))
   
   (get-entries-by-page 
    [this page count]
    (map entity-to-record
         (with-tx [session]
-          (.getResultListBySql
+          (.getResultList
            (.getSqlManager session)
            EntryEntity
-           "SELECT * FROM ENTITY ORDER BY UPDATED_AT DESC LIMIT ? OFFSET ?"
-           (into-array [count (* count (dec page))])))))
+           "sql/get-entries-by-page.sql"
+           {"limit" count, "offset" (* count (dec page))}))))
+  
   (get-total-count
    [this]
    (with-tx [session]
-     (.getSingleResultBySql
+     (.getCount
       (.getSqlManager session)
-      Integer
-      "SELECT COUNT(ID) FROM ENTITY")))
+      "sql/get-total-count.sql")))
+  
   (update-entry
    [this entry]
    (log/debug "entry" entry)
-   (let [entity (record-to-entity entry)]
-     (log/debug "entity" (bean entity))
-     (with-tx [session]
-       (.updateEntity
-        (.getSqlManager session)
-        entity
-        ))))
+   (with-tx [session]
+     (.executeUpdate
+      (.getSqlManager session)
+      "sql/update-entry.sql"
+      (zipmap (map name (keys entry)) (vals entry)))))
+  
   (delete-entry-by-id
    [this id]
    )

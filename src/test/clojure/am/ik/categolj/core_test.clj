@@ -43,3 +43,4 @@
           (get-category-anchor ["hoge" "foo" "bar"]))))
 
 
+(run-tests)

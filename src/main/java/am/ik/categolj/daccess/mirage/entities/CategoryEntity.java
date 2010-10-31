@@ -14,6 +14,16 @@ public class CategoryEntity implements Serializable{
     public String name;
     public Integer index;
 
+    public CategoryEntity() {
+    }
+
+    public CategoryEntity(Long id, String name, Integer index) {
+        super();
+        this.id = id;
+        this.name = name;
+        this.index = index;
+    }
+
     public Long getId() {
         return id;
     }

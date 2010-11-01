@@ -154,10 +154,16 @@ ul {
     -moz-border-radius: 5px;
 }
 
-.main-contents pre, .main-contents code {
+.main-contents pre {
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
+    margin: 10px 0;
+    padding: 3px;
+    border: solid 1px #dedede;
+    overflow-x: auto;
+    overflow-y: auto;
 }
+
 
 .main-contents .edit {
     float: right;

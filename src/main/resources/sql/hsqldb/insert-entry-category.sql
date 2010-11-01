@@ -1,0 +1,1 @@
+INSERT INTO EntryCategory (entry_id, category_id) VALUES (/*entry-id*/1, /*category-id*/1)

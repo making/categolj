@@ -20,6 +20,7 @@
 (def *config* (read-string (slurp (get-resource "config.clj"))))
 (def *theme-dir* (str "theme/" (:theme *config*)))
 (def *content-type* (str "text/html;charset=" (:charset *config*)))
+(def *category-separator* (:category-separator *config*))
 
 ;; load daccess
 (require [(get-in *config* [:daccess :ns]) :as 'dac])
@@ -43,11 +44,13 @@
        category-seq (range (count category-seq))))
 
 (defn get-category-anchor [category-seq]
-  (str/join "::" (for [[name url] (get-category-url category-seq)] (str "<span class='category'><a href='" url "'>" name "</a></span>"))))
+  (str/join *category-separator*
+            (for [[name url] (get-category-url category-seq)]
+              (str "<span class='category'><a href='" url "'>" name "</a></span>"))))
 
 (def *markdown* (per-thread-singleton #(MarkdownProcessor.)))
 
-(defn logedin? "stub" []
+(defn logged-in? "stub" []
   true)
 
 ;; snipetts
@@ -58,12 +61,26 @@
   [:title] (en/content title)
   [:link#rss] (en/set-attr :title (str title " RSS Feed")))
 
+(en/defsnippet categolj-logged-in-menu
+  (get-template "logged-in-menu.html")
+  [:ul#menu]
+  [])
+
+(en/defsnippet categolj-logged-out-menu
+  (get-template "logged-out-menu.html")
+  [:ul#menu]
+  [])
+
 (en/defsnippet categolj-sidebar
   (get-template "sidebar.html")
   [:div#sidebar]
   []
+  [:ul#menu]  
+  (en/substitute (if (logged-in?)
+                   (categolj-logged-in-menu)
+                   (categolj-logged-out-menu)))
   [:.post]
-  (let [entries (get-entries-by-page (*dac*) 1 (:count-of-recently *config*))]
+  (let [entries (get-entries-only-id-title (*dac*) (:count-of-recently *config*))]
     (en/clone-for [{:keys [id title]} entries]
                   [:.post :a]
                   (en/do-> (en/content title)
@@ -94,7 +111,7 @@
   [:.article-content]
   (en/html-content (.markdown ^MarkdownProcessor (*markdown*) content))
   [:.edit-menu :.edit]
-  (if (logedin?)
+  (if (logged-in?)
     (en/substitute (categolj-edit id)))
   [:.article-created-at]
   (en/content (format-date created-at))
@@ -115,13 +132,22 @@
   [:input#field-id]
   (en/set-attr :value id)
   [:input#field-category]
-  (en/set-attr :value (str/join "::" category)) ; ["a" "b" "c"] => a::b::c
+  (en/set-attr :value (str/join *category-separator* category)) ; ["a" "b" "c"] => a::b::c
   [:textarea#field-body]
   (en/content content)
   [:input#field-created-at]
   (en/set-attr :value (format-date created-at))
   [:input#field-updated-at]
   (en/set-attr :value (format-date updated-at)))
+
+(en/defsnippet categolj-delete
+  (get-template "delete.html")
+  [:div.contents]
+  [{:keys [id title]}]
+  [:span.delete-title]
+  (en/content title)
+  [:input#delete-id]
+  (en/set-attr :value id))
 ;;
 
 ;; templates
@@ -169,12 +195,12 @@
                            0 ; no paging navigation.
                            )))
 
-(defn view-hello
+(defn view-top
   "if the request parameter don't contain page, use default page 1."
   [req]
   (let [page (get-in req [:params "page"])
         current-page (if page (Integer/parseInt page) 1)
-        total-page (int (/ (or (get-total-count (*dac*)) 0) (:count-per-page *config*)))]  
+        total-page (int (/ (or (get-total-entry-count (*dac*)) 0) (:count-per-page *config*)))]  
     (res200 (categolj-layout (:title *config*) 
                              (en/substitute (map categolj-content
                                                  (get-entries-by-page (*dac*) current-page (:count-per-page *config*))))
@@ -195,10 +221,32 @@
       (not-found req))))
 ;;
 
+
+(defn view-create [req]
+  (res200 (categolj-layout ""
+                           (en/substitute (categolj-form (let [now (java.util.Date.)]
+                                                           {:created-at now, :updated-at now})))
+                           nil
+                           1
+                           0 ; single page
+                           )))
+
+(defn do-create [req]
+  (let [entry (Entry. {} {:title (get-in req [:params "title"]),
+                          :content (get-in req [:params "body"]),
+                          :created-at (parse-date (get-in req [:params "created-at"])),
+                          :updated-at (parse-date (get-in req [:params "updated-at"])),,
+                          :category (when-let [category (get-in req [:params "category"])]
+                                      (str/split category (java.util.regex.Pattern/compile *category-separator*)))
+                          })]
+    (log/info "create entry =" entry)
+    (insert-entry (*dac*) entry)
+    (redirect "/")
+    ))
+
 (defn view-edit [req]
   (let [id (Integer/parseInt (get-in req [:params "id"])),
         entry (get-entry-by-id (*dac*) id)]
-    (log/debug id)
     (if entry
       (res200 (categolj-layout (:title *config*) 
                                (en/substitute (categolj-form entry))
@@ -216,10 +264,14 @@
           (parse-date (get-in req [:params "updated-at"])))]
     (log/debug "params=" (:params req))
     (let [entry (Entry. {} {:id id,
-                             :title (get-in req [:params "title"]),
-                             :content (get-in req [:params "body"]),
-                             :created-at (parse-date (get-in req [:params "created-at"])),
-                             :updated-at updated-at})]
+                            :title (get-in req [:params "title"]),
+                            :content (get-in req [:params "body"]),
+                            :created-at (parse-date (get-in req [:params "created-at"])),
+                            :updated-at updated-at,
+                            :category (when-let [category (get-in req [:params "category"])]
+                                        (str/split category (java.util.regex.Pattern/compile *category-separator*)))
+                            })]
+      (log/info "update entry =" entry)
       (update-entry (*dac*) entry)
       (redirect (get-entry-edit-url id)))))
      
@@ -227,25 +279,35 @@
 (defn view-delete [req]
   (let [id (Integer/parseInt (get-in req [:params "id"])),
         entry (get-entry-by-id (*dac*) id)]
-    (log/debug id)
     (if entry
       (res200 (categolj-layout (:title *config*) 
-                               (en/html-content "<p>delete</p>")
+                               (en/substitute (categolj-delete entry))
                                nil
                                1
                                0 ; single page
                                ))
       (not-found req))))
 
+(defn do-delete [req]
+  (let [id (Integer/parseInt (get-in req [:params "id"])),
+        entry (get-entry-by-id (*dac*) id)]
+    (log/info "delete entry =" entry)
+    (if entry
+      (delete-entry (*dac*) entry))
+    (redirect "/")))
+
 ;; rooting
 (defroutes categolj
   (GET ["/entry/view/id/:id*", :id #"[0-9]+"] req (view-entry req))
-  (GET ["/page/:page*", :page #"[0-9]+"] req (view-hello req))
+  (GET ["/page/:page*", :page #"[0-9]+"] req (view-top req))
+  (GET ["/entry/create*"] req (view-create req))
+  (POST ["/entry/create*"] req (do-create req))
   (GET ["/entry/edit/id/:id*", :id #"[0-9]+"] req (view-edit req))
   (POST ["/entry/edit/id/:id*", :id #"[0-9]+"] req (do-edit req))
   (GET ["/entry/delete/id/:id*", :id #"[0-9]+"] req (view-delete req))
+  (POST ["/entry/delete/id/:id*", :id #"[0-9]+"] req (do-delete req))
   (GET "/favicon.ico*" req req)
-  (GET "/" req (view-hello req))
+  (GET "/" req (view-top req))
   (ANY "*" req (not-found req))
   )
 ;;
@@ -273,9 +335,9 @@
      (let [excludes (:static-dir *config*)]
        (-> #'categolj
            (trace-request excludes)
-           (wrap-stacktrace)
            (wrap-static (.getPath (get-resource (str *theme-dir* "/public/"))) (:static-dir *config*))
            (wrap-reload '(am.ik.categolj.core)) ;; hot reloading
+           (wrap-stacktrace)
            (trace-response excludes)
            )))
 ;;

@@ -5,6 +5,8 @@
 (defprotocol DataAccess
   (get-entry-by-id [this id])
   (get-entries-by-page [this page count])
-  (get-total-count [this])
+  (get-entries-only-id-title [this count])
+  (get-total-entry-count [this])
+  (insert-entry [this entry])
   (update-entry [this entry])
-  (delete-entry-by-id [this id]))
+  (delete-entry [this entry]))

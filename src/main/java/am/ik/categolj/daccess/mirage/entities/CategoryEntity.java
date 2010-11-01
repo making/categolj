@@ -12,12 +12,12 @@ public class CategoryEntity implements Serializable{
     @PrimaryKey
     public Long id;
     public String name;
-    public Integer index;
+    public Long index;
 
     public CategoryEntity() {
     }
 
-    public CategoryEntity(Long id, String name, Integer index) {
+    public CategoryEntity(Long id, String name, Long index) {
         super();
         this.id = id;
         this.name = name;
@@ -36,10 +36,10 @@ public class CategoryEntity implements Serializable{
     public void setName(String name) {
         this.name = name;
     }
-    public Integer getIndex() {
+    public Long getIndex() {
         return index;
     }
-    public void setIndex(Integer index) {
+    public void setIndex(Long index) {
         this.index = index;
     }
 }

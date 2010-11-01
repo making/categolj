@@ -1,7 +1,7 @@
 SELECT 
        * 
 FROM 
-     Entity
+     Entry
 ORDER BY 
      UPDATED_AT 
 DESC 

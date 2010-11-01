@@ -2,7 +2,7 @@ package am.ik.categolj.daccess.mirage.entities;
 
 import java.io.Serializable;
 import java.util.Date;
-import java.util.Set;
+import java.util.List;
 
 import jp.sf.amateras.mirage.annotation.PrimaryKey;
 import jp.sf.amateras.mirage.annotation.Table;
@@ -16,7 +16,7 @@ public class EntryEntity implements Serializable {
     public String content;
     public Date createdAt;
     public Date updatedAt;
-    public Set<CategoryEntity> categories;
+    public List<CategoryEntity> category;
 
     // TODO category
 
@@ -24,12 +24,13 @@ public class EntryEntity implements Serializable {
     }
 
     public EntryEntity(Long id, String title, String content, Date createdAt,
-            Date updatedAt) {
+                       Date updatedAt, List<CategoryEntity> category) {
         this.id = id;
         this.title = title;
         this.content = content;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.category = category;
     }
 
     public Long getId() {
@@ -72,12 +73,11 @@ public class EntryEntity implements Serializable {
         this.updatedAt = updatedAt;
     }
 
-    public Set<CategoryEntity> getCategories() {
-        return categories;
+    public List<CategoryEntity> getCategory() {
+        return category;
     }
 
-    public void setCategories(Set<CategoryEntity> categories) {
-        this.categories = categories;
+    public void setCategory(List<CategoryEntity> category) {
+        this.category = category;
     }
-
 }

@@ -15,6 +15,8 @@
   (:import [am.ik.categolj.daccess.entities Entry Category User])
   (:import [com.petebevin.markdown MarkdownProcessor]))
 
+(org.slf4j.bridge.SLF4JBridgeHandler/install)
+
 (def *config* (read-string (slurp (get-resource "config.clj"))))
 (def *theme-dir* (str "theme/" (:theme *config*)))
 (def *content-type* (str "text/html;charset=" (:charset *config*)))
@@ -330,7 +332,7 @@
        (-> #'categolj
            (trace-request excludes)
            (wrap-static (.getPath (get-resource (str *theme-dir* "/public/"))) (:static-dir *config*))
-           (wrap-reload '(am.ik.categolj.core)) ;; hot reloading
+           ;;(wrap-reload '(am.ik.categolj.core)) ;; hot reloading
            (trace-response excludes)
            (wrap-stacktrace)
            )))

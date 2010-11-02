@@ -165,7 +165,7 @@
   [:div.contents] body
   [:.pages :.page]
   ;; show paging navigation if total page is greater than 2.
-  (en/clone-for [i (range 1 (if (pos? total-page) (+ total-page 2) 0))]
+  (en/clone-for [i (range 1 (if (> total-page 1) (inc total-page) 0))]
                 [:.page]                
                 (en/html-content (if (= i current-page)
                                    (str "<strong>" i "</strong>")
@@ -188,48 +188,56 @@
 ;; view
 
 (defn not-found [req]
-  (res404 (categolj-layout "Error" 
-                           (en/html-content (str "<h2>404 Not Found</h2>" "<p>" (:uri req) " is not found.</p>"))
-                           nil
-                           1 ; current page is 1.
-                           0 ; no paging navigation.
-                           )))
+  (res404 (categolj-layout
+           "Error" 
+           (en/html-content (str "<h2>404 Not Found</h2>" "<p>" (:uri req) " is not found.</p>"))
+           nil
+           1 ; current page is 1.
+           0 ; no paging navigation.
+           )))
 
 (defn view-top
   "if the request parameter don't contain page, use default page 1."
   [req]
   (let [page (get-in req [:params "page"])
         current-page (if page (Integer/parseInt page) 1)
-        total-page (int (/ (or (get-total-entry-count (*dac*)) 0) (:count-per-page *config*)))]  
-    (res200 (categolj-layout (:title *config*) 
-                             (en/substitute (map categolj-content
-                                                 (get-entries-by-page (*dac*) current-page (:count-per-page *config*))))
-                             nil
-                             current-page
-                             total-page))))
+        entry-count (get-total-entry-count (*dac*))
+        count-per-page (:count-per-page *config*)
+        total-page (quot entry-count count-per-page)
+        total-page (if (and (pos? entry-count) (zero? (rem entry-count count-per-page)))
+                     total-page (inc total-page))]
+    (res200 (categolj-layout
+             (:title *config*) 
+             (en/substitute (map categolj-content
+                                 (get-entries-by-page (*dac*) current-page (:count-per-page *config*))))
+             nil
+             current-page
+             total-page))))
 
 (defn view-entry [req]
   (let [id (Integer/parseInt (get-in req [:params "id"])),
         entry (get-entry-by-id (*dac*) id)]
     (if entry
-      (res200 (categolj-layout (str (:title entry) " - " (:title *config*))
-                               (en/substitute (categolj-content entry))
-                               (en/html-content (get-category-anchor (:category entry))) ; add category header 
-                               1
-                               0 ; single page
-                               ))
+      (res200 (categolj-layout
+               (str (:title entry) " - " (:title *config*))
+               (en/substitute (categolj-content entry))
+               (en/html-content (get-category-anchor (:category entry))) ; add category header 
+               1
+               0 ; single page
+               ))
       (not-found req))))
 ;;
 
 
 (defn view-create [req]
-  (res200 (categolj-layout ""
-                           (en/substitute (categolj-form (let [now (java.util.Date.)]
-                                                           {:created-at now, :updated-at now})))
-                           nil
-                           1
-                           0 ; single page
-                           )))
+  (res200 (categolj-layout
+           ""
+           (en/substitute (categolj-form (let [now (java.util.Date.)]
+                                           {:created-at now, :updated-at now})))
+           nil
+           1
+           0 ; single page
+           )))
 
 (defn do-create [req]
   (let [entry (Entry. {} {:title (get-in req [:params "title"]),
@@ -241,19 +249,19 @@
                           })]
     (log/info "create entry =" entry)
     (insert-entry (*dac*) entry)
-    (redirect "/")
-    ))
+    (redirect "/")))
 
 (defn view-edit [req]
   (let [id (Integer/parseInt (get-in req [:params "id"])),
         entry (get-entry-by-id (*dac*) id)]
     (if entry
-      (res200 (categolj-layout (:title *config*) 
-                               (en/substitute (categolj-form entry))
-                               nil
-                               1
-                               0 ; single page
-                               ))
+      (res200 (categolj-layout
+               (:title *config*) 
+               (en/substitute (categolj-form entry))
+               nil
+               1
+               0 ; single page
+               ))
       (not-found req))))
 
 (defn do-edit [req]
@@ -280,12 +288,13 @@
   (let [id (Integer/parseInt (get-in req [:params "id"])),
         entry (get-entry-by-id (*dac*) id)]
     (if entry
-      (res200 (categolj-layout (:title *config*) 
-                               (en/substitute (categolj-delete entry))
-                               nil
-                               1
-                               0 ; single page
-                               ))
+      (res200 (categolj-layout
+               (:title *config*) 
+               (en/substitute (categolj-delete entry))
+               nil
+               1
+               0 ; single page
+               ))
       (not-found req))))
 
 (defn do-delete [req]

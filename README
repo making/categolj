@@ -14,7 +14,10 @@ $ lein run server
 
 ## Installation
 
-FIXME: write
+In the production mode, you should comment out the line 
+"(wrap-reload '(am.ik.categolj.core))"
+in core.clj
+
 
 ## License
 

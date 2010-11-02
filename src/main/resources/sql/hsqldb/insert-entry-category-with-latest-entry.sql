@@ -1,6 +1,7 @@
 INSERT INTO EntryCategory (entry_id, category_id) 
 VALUES (
-     /*entry-id*/1,
+     /* Using sequence is better to guarantee consistency ? */
+     (SELECT id FROM Entry ORDER BY id DESC LIMIT 1),
 /*IF name == null*/
      /*category-id*/1
 /*END*/

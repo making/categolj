@@ -1,8 +1,10 @@
 (ns am.ik.categolj.daccess.mirage.daccess
   (:use [am.ik.categolj.utils date-utils])
+  (:use [am.ik.categolj.common])
   (:use [am.ik.categolj.daccess daccess entities])
   (:use [clojure.contrib singleton])
   (:require [clojure.contrib.logging :as log])
+  (:require [clojure.string :as str])
   (:import [am.ik.categolj.daccess.entities Entry Category User])
   (:import [am.ik.categolj.daccess.mirage.entities EntryEntity CategoryEntity EntryCategory])
   (:import [jp.sf.amateras.mirage SqlManager])
@@ -18,27 +20,32 @@
          (.commit ~session)                  
          ret#)
        (catch Exception e#
-         (log/error "Exception occured in transaction!" e#)
+         (log/error e# "Exception occured in transaction!")
          (.rollback ~session)
          (throw e#))
        (finally
         (.release ~session)))))
 
-;; (def (create-session "org.hsqldb.jdbcDriver" "hsqldb" "mem:categolj" "sa" ""))
+;; (def session (create-session "org.hsqldb.jdbcDriver" "hsqldb" "mem:categolj" "sa" ""))
 (defn ^Session create-session [classname subprotocol subname user password]
   (JDBCSessionImpl. classname (str "jdbc:" subprotocol ":" subname) user password))
 
 (defn %update-by-sql [^Session session sql-file params]
   (let [^SqlManager manager (.getSqlManager session)]
-    (.executeUpdate (.getSqlManager session) sql-file params)))
+    (.executeUpdate manager sql-file params)))
 
-(defn %get-single-entity [^Session session clazz sql-file params]
+(defn %get-single-entity-by-sql [^Session session clazz sql-file params]
   (let [^SqlManager manager (.getSqlManager session)]
     (.getSingleResult manager clazz sql-file params)))
 
-(defn %get-entities [^Session session clazz sql-file params]
+(defn %get-entities-by-sql [^Session session clazz sql-file params]
   (let [^SqlManager manager (.getSqlManager session)]
     (.getResultList manager clazz sql-file params)))
+
+(defn %get-count-by-sql [^Session session sql-file params]
+  (let [^SqlManager manager (.getSqlManager session)]
+    (.getCount manager sql-file params)))
+  
 
 (defn get-sql-path [subprotocol file-name]
   (str "sql/" subprotocol "/" file-name))
@@ -52,6 +59,9 @@
 (defn %insert-entry-category [subprotocol ^Session session params]
   (%update-by-sql session (get-sql-path subprotocol "insert-entry-category.sql") params))
 
+(defn %insert-entry-category-with-latest-entry [subprotocol ^Session session params]
+  (%update-by-sql session (get-sql-path subprotocol "insert-entry-category-with-latest-entry.sql") params))
+
 (defn %update-entry [subprotocol ^Session session params]
   (%update-by-sql session (get-sql-path subprotocol "update-entry.sql") params))
 
@@ -62,25 +72,32 @@
   (%update-by-sql session (get-sql-path subprotocol "delete-category.sql") params))
 
 (defn %get-total-entry-count [subprotocol ^Session session]
-  (let [^SqlManager manager (.getSqlManager session)]
-    (.getCount
-     (.getSqlManager session)
-     (get-sql-path subprotocol "get-total-entry-count.sql"))))
+  (%get-count-by-sql session (get-sql-path subprotocol "get-total-entry-count.sql") {}))
+
+(defn %get-category-count-by-name-and-index [subprotocol ^Session session params]
+  (%get-count-by-sql session (get-sql-path subprotocol "get-category-count-by-name-and-index.sql") params))
   
-;; (defn %delete-entry-category [subprotocol ^Session session params]
-;;   (%update-by-sql session "sql/delete-entry-category.sql" params))
+(defn %delete-entry-category [subprotocol ^Session session params]
+  (%update-by-sql session (get-sql-path subprotocol "delete-entry-category.sql") params))
+
+(defn %delete-entry-category-by-name-and-entry-id [subprotocol ^Session session params]
+  (%update-by-sql session (get-sql-path subprotocol "delete-entry-category-by-name-and-entry-id.sql") params))
 
 (defn ^EntryEntity %get-entry-by-id [subprotocol ^Session session params]
-  (%get-single-entity session EntryEntity (get-sql-path subprotocol "get-entry-by-id.sql") params))
+  (%get-single-entity-by-sql session EntryEntity (get-sql-path subprotocol "get-entry-by-id.sql") params))
 
 (defn ^java.util.List %get-categories-by-entry-id [subprotocol ^Session session params]
-  (%get-entities session CategoryEntity (get-sql-path subprotocol "get-categories-by-entry-id.sql") params))
+  (%get-entities-by-sql session CategoryEntity (get-sql-path subprotocol "get-categories-by-entry-id.sql") params))
 
 (defn ^java.util.List %get-entries-by-page [subprotocol ^Session session params]
-  (%get-entities session EntryEntity (get-sql-path subprotocol "get-entries-by-page.sql") params))
+  (%get-entities-by-sql session EntryEntity (get-sql-path subprotocol "get-entries-by-page.sql") params))
 
 (defn ^java.util.List %get-entries-only-id-title [subprotocol ^Session session params]
-  (%get-entities session EntryEntity (get-sql-path subprotocol "get-entries-only-id-title.sql") params))
+  (%get-entities-by-sql session EntryEntity (get-sql-path subprotocol "get-entries-only-id-title.sql") params))
+
+(defn %insert-category-if-not-exists [subprotocol ^Session session params]
+  (if (< (%get-category-count-by-name-and-index subprotocol session params) 1)
+    (%insert-category subprotocol session params) 0))
 
 (defn ^Entry entity-to-record [^EntryEntity entity]
   (if entity
@@ -98,8 +115,7 @@
   (let [entry (entity-to-record entity)]
     (if entry
       (assoc entry
-        :category (map #(.name %)
-                       (remove nil? (%get-categories-by-entry-id subprotocol session {"id" (:id entry)})))))))
+        :category (map name (%get-categories-by-entry-id subprotocol session {"id" (:id entry)}))))))
 
 (defn ^EntryEntity record-to-entity [param]
   (if param
@@ -144,14 +160,30 @@
   (insert-entry
    [this entry]
    (with-tx [session]
-     (%insert-entry subprotocol session (zipmap (map name (keys entry)) (vals entry)))
+     (%insert-entry subprotocol session (keys-to-name entry))
      ;; insert category...
-     ))
+     (let [diff (difference-category [] (:category entry))
+           added (:added diff)]
+       (doseq [[index name] added]
+         (%insert-category-if-not-exists subprotocol session {"name" name, "index" index})
+         (%insert-entry-category-with-latest-entry subprotocol session {"name" name})))))
   
   (update-entry
    [this entry]
    (with-tx [session]
-     (%update-entry subprotocol session (zipmap (map name (keys entry)) (vals entry)))))
+     (%update-entry subprotocol session (keys-to-name entry))
+     (let [entry-id (:id entry)
+           prev (map name (%get-categories-by-entry-id subprotocol session {"id" entry-id}))
+           diff (difference-category prev (:category entry))
+           removed (:removed diff)
+           added (:added diff)]
+       ;; delete removed categories
+       (doseq [[index name] removed]
+         (%delete-entry-category-by-name-and-entry-id subprotocol session {"entry-id" entry-id, "name" name}))
+       ;; insert added categories
+       (doseq [[index name] added]
+         (%insert-category-if-not-exists subprotocol session {"name" name, "index" index})
+         (%insert-entry-category subprotocol session {"entry-id" entry-id, "name" name})))))
   
   (delete-entry
    [this entry]
@@ -164,16 +196,15 @@
   "create Entry table if not exists."
   [subprotocol ^Session session ddl]
   (with-tx [session]    
-    (let [^SqlManager manager (.getSqlManager session)]
+    (let [^SqlManager manager (.getSqlManager session)
+          ddl-lines (str/split (slurp (get-resource (get-sql-path subprotocol ddl))) #";")]
       (try
         ;; Check whether ENTITY table exists.
-        (.getSingleResultBySql (.getSqlManager session) Integer
-                               "SELECT COUNT(id) FROM Entry")
+        (.getSingleResultBySql manager Integer "SELECT COUNT(id) FROM Entry")
         (catch SQLRuntimeException e
-          ;; If not exits, then create.
-          (if (coll? ddl)
-            (dorun (map #(.executeUpdateBySql manager %) ddl))
-            (.executeUpdateBySql manager ddl))
+          ;; If not exits, then execute DDL
+          (dorun 
+           (map #(.executeUpdateBySql manager %) ddl-lines))
           ;; Insert test data.
           (%insert-entry subprotocol session {"id" 1, "title" "Title1", "content" "hogehoge", "created-at" (java.util.Date.), "updated-at" (java.util.Date.)})
           (%insert-entry subprotocol session {"id" 2, "title" "Title2", "content" "`hogehoge`", "created-at" (java.util.Date.), "updated-at" (java.util.Date.)})

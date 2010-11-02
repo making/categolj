@@ -18,8 +18,6 @@ public class EntryEntity implements Serializable {
     public Date updatedAt;
     public List<CategoryEntity> category;
 
-    // TODO category
-
     public EntryEntity() {
     }
 

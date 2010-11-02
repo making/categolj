@@ -4,6 +4,7 @@
   (:use [ring.util.response])
   (:use [clojure.contrib.singleton])
   (:use [compojure core])
+  (:use [am.ik.categolj.common])
   (:use [am.ik.categolj.utils string-utils date-utils])
   (:use [am.ik.categolj.daccess daccess entities])
   (:require [net.cgrand.enlive-html :as en])
@@ -13,9 +14,6 @@
   (:require [clojure.string :as str])
   (:import [am.ik.categolj.daccess.entities Entry Category User])
   (:import [com.petebevin.markdown MarkdownProcessor]))
-
-(defn ^java.net.URL get-resource [filename]
-  (.getResource (.getContextClassLoader (Thread/currentThread)) filename))
 
 (def *config* (read-string (slurp (get-resource "config.clj"))))
 (def *theme-dir* (str "theme/" (:theme *config*)))
@@ -29,19 +27,6 @@
 
 (defn get-template [filename]
   (str *theme-dir* "/pages/" filename))
-
-(defn get-entry-view-url [id title]
-  (str "/entry/view/id/" id "/" (if title (str "title/" title "/"))))
-
-(defn get-entry-edit-url [id]
-  (str "/entry/edit/id/" id "/"))
-
-(defn get-entry-delete-url [id]
-  (str "/entry/delete/id/" id "/"))
-
-(defn get-category-url [category-seq]
-  (map (fn [x i] [x (str "/category/" (str/join "/" (take (inc i) category-seq)) "/")])
-       category-seq (range (count category-seq))))
 
 (defn get-category-anchor [category-seq]
   (str/join *category-separator*
@@ -186,7 +171,6 @@
 ;;
 
 ;; view
-
 (defn not-found [req]
   (res404 (categolj-layout
            "Error" 
@@ -323,7 +307,8 @@
 
 ;; wrapper
 (defn uri-matches [^String uri targets]
-  (some #(.startsWith uri %) targets))
+  (if uri
+    (some #(.startsWith uri %) targets)))
 
 (defn trace-request [app excludes]
   (fn [req]
@@ -336,7 +321,7 @@
     (let [res (app req)]
       (if-not (uri-matches (:uri req) excludes)
         (log/trace "[response]" (dissoc res :body)))
-      res)))
+        res)))
 ;;
 
 ;; app
@@ -346,8 +331,8 @@
            (trace-request excludes)
            (wrap-static (.getPath (get-resource (str *theme-dir* "/public/"))) (:static-dir *config*))
            (wrap-reload '(am.ik.categolj.core)) ;; hot reloading
-           (wrap-stacktrace)
            (trace-response excludes)
+           (wrap-stacktrace)
            )))
 ;;
 

@@ -29,30 +29,44 @@
    [this id]
    (let [id (if (string? id) (Long/valueOf id) id)]
      (get @*data* id)))
+  
   (get-entries-by-page 
    [this page count]
    (vals @*data*))
+  
   (get-entries-only-id-title
    [this count]
    (get-entries-by-page this 1 count))
+  
   (get-total-entry-count
    [this]
    (count @*data*))
+  
   (insert-entry
    [this entry]
    (let [id (inc (apply max (keys @*data*)))]
      (dosync 
       (alter *data* assoc id entry))))
+  
   (update-entry
    [this entry]
    (let [id (if (string? (:id entry)) (Long/valueOf (:id entry)) (:id entry))]
      (dosync
       (alter *data* assoc id entry))))
+  
   (delete-entry
    [this entry]
    (let [id (if (string? (:id entry)) (Long/valueOf (:id entry)) (:id entry))]
      (dosync
       (alter *data* dissoc (:id entry)))))
+
+  (get-categorized-entries-by-page
+   [this category page count]
+   (get-entries-by-page this page count))
+
+  (get-categorized-entry-count
+   [this category]
+   (get-total-entry-count this))
   )
 
 (defn create-daccess [params]

@@ -22,6 +22,9 @@
 (defn keys-to-name [m]
   (zipmap (map name (keys m)) (vals m)))
 
+(defn indexed-set [seq]
+  (apply sorted-set-by (fn [x y] (< (first x) (first y))) (map vector (iterate inc 1) seq)))
+
 (defn difference-category
   "returns map which has the set of deleted value and index with :deleted key
    and the set of added value and index with :added key
@@ -40,8 +43,13 @@
    -> {:removed #{}, :added #{}}
   "
   [from to]
-  (let [fs (apply hash-set (map vector (iterate inc 1) from))
-        ts (apply hash-set (map vector (iterate inc 1) to))]
+  (let [fs (indexed-set from)
+        ts (indexed-set to)]
     {:removed (s/difference fs ts),
      :added (s/difference ts fs),}
     ))
+
+(defn calc-total-page [total-count count-per-page]
+  (let [total-page (quot total-count count-per-page)]
+    (if (and (pos? total-count) (zero? (rem total-count count-per-page)))
+      total-page (inc total-page))))

@@ -48,6 +48,7 @@
   
 
 (defn get-sql-path [subprotocol file-name]
+  (log/debug (str subprotocol " " file-name))
   (str "sql/" subprotocol "/" file-name))
 
 (defn %insert-entry [subprotocol ^Session session params]
@@ -71,8 +72,8 @@
 (defn %delete-category [subprotocol ^Session session params]
   (%update-by-sql session (get-sql-path subprotocol "delete-category.sql") params))
 
-(defn %get-total-entry-count [subprotocol ^Session session]
-  (%get-count-by-sql session (get-sql-path subprotocol "get-total-entry-count.sql") {}))
+(defn %get-entry-count [subprotocol ^Session session params]
+  (%get-count-by-sql session (get-sql-path subprotocol "get-entry-count.sql") params))
 
 (defn %get-category-count-by-name-and-index [subprotocol ^Session session params]
   (%get-count-by-sql session (get-sql-path subprotocol "get-category-count-by-name-and-index.sql") params))
@@ -117,6 +118,10 @@
       (assoc entry
         :category (map name (%get-categories-by-entry-id subprotocol session {"id" (:id entry)}))))))
 
+(defn ^java.util.List get-entry-records-with-category-by-page [subprotocol ^Session session params]
+  (doall (map #(entity-to-record-with-category subprotocol session %)
+              (%get-entries-by-page subprotocol session params))))
+
 (defn ^EntryEntity record-to-entity [param]
   (if param
     (EntryEntity. (let [id (:id param)]
@@ -141,10 +146,8 @@
   (get-entries-by-page 
    [this page count]
    (with-tx [session]
-     (doall (map #(entity-to-record-with-category subprotocol session %)
-                 (%get-entries-by-page
-                  subprotocol session
-                  {"limit" count, "offset" (* count (dec page))})))))
+     (get-entry-records-with-category-by-page subprotocol session
+       {"limit" count, "offset" (* count (dec page))})))
 
   (get-entries-only-id-title
    [this count]
@@ -155,15 +158,14 @@
   (get-total-entry-count
    [this]
    (with-tx [session]     
-     (%get-total-entry-count subprotocol session)))
+     (%get-entry-count subprotocol session {})))
 
   (insert-entry
    [this entry]
    (with-tx [session]
      (%insert-entry subprotocol session (keys-to-name entry))
      ;; insert category...
-     (let [diff (difference-category [] (:category entry))
-           added (:added diff)]
+     (let [added (indexed-set (:category entry))]
        (doseq [[index name] added]
          (%insert-category-if-not-exists subprotocol session {"name" name, "index" index})
          (%insert-entry-category-with-latest-entry subprotocol session {"name" name})))))
@@ -189,6 +191,23 @@
    [this entry]
    (with-tx [session]
      (%delete-entry subprotocol session {"id" (:id entry)})))
+
+  (get-categorized-entries-by-page
+   [this category page count]
+   (let [target (last (indexed-set category))]
+     ;; ignore butlast category... (TODO)
+     (with-tx [session]
+       (get-entry-records-with-category-by-page subprotocol session
+         {"limit" count, "offset" (* count (dec page)),
+          "index" (first target), "name" (second target)}))))
+  
+  (get-categorized-entry-count
+   [this category]
+   (let [target (last (indexed-set category))]
+     ;; ignore butlast category... (TODO)
+     (with-tx [session]
+       (%get-entry-count subprotocol session
+                         {"index" (first target), "name" (second target)}))))
   )
 
 

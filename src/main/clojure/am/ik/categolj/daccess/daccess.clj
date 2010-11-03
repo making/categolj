@@ -7,6 +7,8 @@
   (get-entries-by-page [this page count])
   (get-entries-only-id-title [this count])
   (get-total-entry-count [this])
+  (get-categorized-entries-by-page [this category page count])
+  (get-categorized-entry-count [this category])
   (insert-entry [this entry])
   (update-entry [this entry])
   (delete-entry [this entry]))

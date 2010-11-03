@@ -5,7 +5,7 @@
   (:use [clojure.contrib.singleton])
   (:use [compojure core])
   (:use [am.ik.categolj.common])
-  (:use [am.ik.categolj.utils string-utils date-utils])
+  (:use [am.ik.categolj.utils string-utils date-utils logging-utils])
   (:use [am.ik.categolj.daccess daccess entities])
   (:require [net.cgrand.enlive-html :as en])
   (:require [compojure.route :as route])
@@ -15,7 +15,7 @@
   (:import [am.ik.categolj.daccess.entities Entry Category User])
   (:import [com.petebevin.markdown MarkdownProcessor]))
 
-(org.slf4j.bridge.SLF4JBridgeHandler/install)
+(install-slfj-bridge-handler)
 
 (def *config* (read-string (slurp (get-resource "config.clj"))))
 (def *theme-dir* (str "theme/" (:theme *config*)))
@@ -140,7 +140,7 @@
 ;; templates
 (en/deftemplate categolj-layout
   (get-template "layout.html")
-  [title body contents-header current-page total-page]
+  [req title body contents-header current-page total-page]
   [:head] (en/substitute (categolj-header title))
   [:div#header :h1 :a] (en/do-> (en/content (:title *config*)) 
                                 (en/set-attr :href "/"))
@@ -151,12 +151,17 @@
              (en/set-attr :id "contents-header")))
   [:div.contents] body
   [:.pages :.page]
-  ;; show paging navigation if total page is greater than 2.
-  (en/clone-for [i (range 1 (if (> total-page 1) (inc total-page) 0))]
-                [:.page]                
-                (en/html-content (if (= i current-page)
-                                   (str "<strong>" i "</strong>")
-                                   (str "<a href='/page/" i "/'>" i "</a>"))))
+  (let [category (get-in req [:params "category"])]
+    (log/debug (str "category = " category))
+    ;; show paging navigation if total page is greater than 2.
+    (en/clone-for [i (range 1 (if (> total-page 1) (inc total-page) 0))]
+                  [:.page]                
+                  (en/html-content (if (= i current-page)
+                                     (str "<strong>" i "</strong>")
+                                     ;; if the current page shows category, add category infomation after URL
+                                     (str "<a href='/page/" i "/"
+                                          (if category (str "category/" category))
+                                          "'>" i "</a>")))))
   [:div#footer] (en/substitute (categolj-footer)))
 ;;
 
@@ -175,9 +180,10 @@
 ;; view
 (defn not-found [req]
   (res404 (categolj-layout
+           req
            "Error" 
            (en/html-content (str "<h2>404 Not Found</h2>" "<p>" (:uri req) " is not found.</p>"))
-           nil
+           nil ; no header
            1 ; current page is 1.
            0 ; no paging navigation.
            )))
@@ -189,14 +195,13 @@
         current-page (if page (Integer/parseInt page) 1)
         entry-count (get-total-entry-count (*dac*))
         count-per-page (:count-per-page *config*)
-        total-page (quot entry-count count-per-page)
-        total-page (if (and (pos? entry-count) (zero? (rem entry-count count-per-page)))
-                     total-page (inc total-page))]
+        total-page (calc-total-page entry-count count-per-page)]
     (res200 (categolj-layout
+             req
              (:title *config*) 
              (en/substitute (map categolj-content
-                                 (get-entries-by-page (*dac*) current-page (:count-per-page *config*))))
-             nil
+                                 (get-entries-by-page (*dac*) current-page count-per-page)))
+             nil ; no header
              current-page
              total-page))))
 
@@ -205,6 +210,7 @@
         entry (get-entry-by-id (*dac*) id)]
     (if entry
       (res200 (categolj-layout
+               req
                (str (:title entry) " - " (:title *config*))
                (en/substitute (categolj-content entry))
                (en/html-content (get-category-anchor (:category entry))) ; add category header 
@@ -217,10 +223,11 @@
 
 (defn view-create [req]
   (res200 (categolj-layout
+           req
            ""
            (en/substitute (categolj-form (let [now (java.util.Date.)]
                                            {:created-at now, :updated-at now})))
-           nil
+           nil ; no header
            1
            0 ; single page
            )))
@@ -242,6 +249,7 @@
         entry (get-entry-by-id (*dac*) id)]
     (if entry
       (res200 (categolj-layout
+               req
                (:title *config*) 
                (en/substitute (categolj-form entry))
                nil
@@ -275,6 +283,7 @@
         entry (get-entry-by-id (*dac*) id)]
     (if entry
       (res200 (categolj-layout
+               req
                (:title *config*) 
                (en/substitute (categolj-delete entry))
                nil
@@ -291,10 +300,29 @@
       (delete-entry (*dac*) entry))
     (redirect "/")))
 
+(defn view-category [req]
+  (let [category (split-by-slash (get-in req [:params "category"]))
+        page (get-in req [:params "page"])
+        current-page (if page (Integer/parseInt page) 1)
+        entry-count (get-categorized-entry-count (*dac*) category)
+        count-per-page (:count-per-page *config*)
+        total-page (calc-total-page entry-count count-per-page)]
+    (res200 (categolj-layout
+             req
+             (:title *config*) 
+             (en/substitute (map categolj-content
+                                 (get-categorized-entries-by-page (*dac*)
+                                                                  category current-page count-per-page)))
+             (en/html-content (get-category-anchor category)) ; add category header 
+             current-page
+             total-page))))
+
 ;; rooting
 (defroutes categolj
   (GET ["/entry/view/id/:id*", :id #"[0-9]+"] req (view-entry req))
+  (GET ["/page/:page/category/:category", :page #"[0-9]+", :category #"(.+\/)+"] req (view-category req))
   (GET ["/page/:page*", :page #"[0-9]+"] req (view-top req))
+  (GET ["/category/:category", :category #"(.+\/)+"] req (view-category req))
   (GET ["/entry/create*"] req (view-create req))
   (POST ["/entry/create*"] req (do-create req))
   (GET ["/entry/edit/id/:id*", :id #"[0-9]+"] req (view-edit req))
@@ -332,7 +360,7 @@
        (-> #'categolj
            (trace-request excludes)
            (wrap-static (.getPath (get-resource (str *theme-dir* "/public/"))) (:static-dir *config*))
-           ;;(wrap-reload '(am.ik.categolj.core)) ;; hot reloading
+           (wrap-reload '(am.ik.categolj.core)) ;; hot reloading
            (trace-response excludes)
            (wrap-stacktrace)
            )))

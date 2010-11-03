@@ -4,8 +4,7 @@
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <Target>System.out</Target>
     <layout class="ch.qos.logback.classic.PatternLayout">
-      <!--       <Pattern>%d{HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</Pattern> -->
-      <Pattern>%d{HH:mm:ss} %-5level %-24logger{24} - %msg%n</Pattern>
+      <Pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %-24logger{24} - %msg%n</Pattern>
     </layout>
   </appender>
 
@@ -17,8 +16,7 @@
       <MaxHistory>2</MaxHistory>
     </rollingPolicy>
     <layout class="ch.qos.logback.classic.PatternLayout">
-      <!--         <Pattern>%d{HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</Pattern> -->
-      <Pattern>%d{HH:mm:ss} %-5level %-24logger{24} - %msg%n</Pattern>
+      <Pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %-24logger{24} - %msg%n</Pattern>
     </layout>
   </appender>
 
@@ -33,7 +31,10 @@
   <logger name="java.sql">
     <level value="DEBUG" />
   </logger>
-
+  
+  <logger name="jp.sf.amateras.mirage">
+  	<level value="INFO" />
+  </logger>
   <root>
     <level value="INFO" />
     <appender-ref ref="STDOUT" />

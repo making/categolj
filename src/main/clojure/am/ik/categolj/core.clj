@@ -1,6 +1,6 @@
 (ns am.ik.categolj.core
   (:use [ring.adapter.jetty])
-  (:use [ring.middleware reload stacktrace static])
+  (:use [ring.middleware reload stacktrace static session])
   (:use [ring.util.response])
   (:use [clojure.contrib.singleton])
   (:use [compojure core])
@@ -37,9 +37,6 @@
 
 (def *markdown* (per-thread-singleton #(MarkdownProcessor.)))
 
-(defn logged-in? "stub" []
-  true)
-
 ;; snipetts
 (en/defsnippet categolj-header
   (get-template "header.html")
@@ -61,9 +58,9 @@
 (en/defsnippet categolj-sidebar
   (get-template "sidebar.html")
   [:div#sidebar]
-  []
+  [user]
   [:ul#menu]  
-  (en/substitute (if (logged-in?)
+  (en/substitute (if user
                    (categolj-logged-in-menu)
                    (categolj-logged-out-menu)))
   [:.post]
@@ -91,14 +88,14 @@
 (en/defsnippet categolj-content
   (get-template "main.html")
   [:div.contents]
-  [{:keys [id title content created-at updated-at category]}]
+  [{:keys [id title content created-at updated-at category]} user]
   [:.article-title :a]  
   (en/do-> (en/content title)
            (en/set-attr :href (get-entry-view-url id title)))
   [:.article-content]
   (en/html-content (.markdown ^MarkdownProcessor (*markdown*) content))
   [:.edit-menu :.edit]
-  (if (logged-in?)
+  (if user
     (en/substitute (categolj-edit id)))
   [:.article-created-at]
   (en/content (format-date created-at))
@@ -135,6 +132,16 @@
   (en/content title)
   [:input#delete-id]
   (en/set-attr :value id))
+
+(en/defsnippet categolj-login
+  (get-template "login.html")
+  [:div.contents]
+  [errors referer]
+  [:#errors]
+  (if errors (en/content errors))
+  [:input#field-referer]
+  (en/set-attr :value referer)
+  )
 ;;
 
 ;; templates
@@ -144,7 +151,7 @@
   [:head] (en/substitute (categolj-header title))
   [:div#header :h1 :a] (en/do-> (en/content (:title *config*)) 
                                 (en/set-attr :href "/"))
-  [:div#sidebar] (en/substitute (categolj-sidebar))
+  [:div#sidebar] (en/substitute (categolj-sidebar (get-user req)))
   [:h2.contents-header]
   (if contents-header
     (en/do-> contents-header
@@ -199,7 +206,7 @@
     (res200 (categolj-layout
              req
              (:title *config*) 
-             (en/substitute (map categolj-content
+             (en/substitute (map #(categolj-content % (get-user req))
                                  (get-entries-by-page (*dac*) current-page count-per-page)))
              nil ; no header
              current-page
@@ -212,7 +219,7 @@
       (res200 (categolj-layout
                req
                (str (:title entry) " - " (:title *config*))
-               (en/substitute (categolj-content entry))
+               (en/substitute (categolj-content entry (get-user req)))
                (en/html-content (get-category-anchor (:category entry))) ; add category header 
                1
                0 ; single page
@@ -310,12 +317,35 @@
     (res200 (categolj-layout
              req
              (:title *config*) 
-             (en/substitute (map categolj-content
+             (en/substitute (map #(categolj-content % (get-user req))
                                  (get-categorized-entries-by-page (*dac*)
                                                                   category current-page count-per-page)))
              (en/html-content (get-category-anchor category)) ; add category header 
              current-page
              total-page))))
+
+(defn view-login
+  ([req]
+     (view-login req nil))
+  ([req errors]
+     (let [user (get-user req)]
+       (res200 (categolj-layout
+                req
+                "Login" 
+                (en/substitute (categolj-login errors (get-in req [:headers "referer"])))
+                nil 1 0)))))
+
+(defn do-login [req]
+  (let [user {:name "hoge"}
+        referer (get-in req [:params "referer"])
+        res (redirect (or referer "/"))]
+    (if user 
+      (assoc-in res [:session :user] user)
+      (view-login req "Login is failed."))))
+
+(defn do-logout [req]
+  (let [res (redirect "/")]
+    (assoc-in res [:session :user] nil)))
 
 ;; rooting
 (defroutes categolj
@@ -329,6 +359,9 @@
   (POST ["/entry/edit/id/:id*", :id #"[0-9]+"] req (do-edit req))
   (GET ["/entry/delete/id/:id*", :id #"[0-9]+"] req (view-delete req))
   (POST ["/entry/delete/id/:id*", :id #"[0-9]+"] req (do-delete req))
+  (GET ["/login"] req (view-login req))
+  (POST ["/login"] req (do-login req))
+  (GET ["/logout"] req (do-logout req))
   (GET "/favicon.ico*" req req)
   (GET "/" req (view-top req))
   (ANY "*" req (not-found req))
@@ -358,9 +391,10 @@
 (def app
      (let [excludes (:static-dir *config*)]
        (-> #'categolj
+           (wrap-session)
            (trace-request excludes)
            (wrap-static (.getPath (get-resource (str *theme-dir* "/public/"))) (:static-dir *config*))
-           (wrap-reload '(am.ik.categolj.core)) ;; hot reloading
+           ;;(wrap-reload '(am.ik.categolj.core am.ik.categolj.common)) ;; hot reloading
            (trace-response excludes)
            (wrap-stacktrace)
            )))

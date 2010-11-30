@@ -329,14 +329,18 @@
      (view-login req nil))
   ([req errors]
      (let [user (get-user req)]
-       (res200 (categolj-layout
-                req
-                "Login" 
-                (en/substitute (categolj-login errors (get-in req [:headers "referer"])))
-                nil 1 0)))))
+       (if user
+         (redirect "/")
+         (res200 (categolj-layout
+                  req
+                  "Login" 
+                  (en/substitute (categolj-login errors (get-in req [:headers "referer"])))
+                  nil 1 0))))))
 
 (defn do-login [req]
-  (let [user {:name "hoge"}
+  (let [name (get-in req [:params "name"])
+        password (get-in req [:params "password"])
+        user (auth-user (*dac*) {:name name, :password password})
         referer (get-in req [:params "referer"])
         res (redirect (or referer "/"))]
     (if user 

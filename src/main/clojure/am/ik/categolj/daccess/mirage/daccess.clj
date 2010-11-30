@@ -1,12 +1,12 @@
 (ns am.ik.categolj.daccess.mirage.daccess
-  (:use [am.ik.categolj.utils date-utils])
+  (:use [am.ik.categolj.utils string-utils date-utils])
   (:use [am.ik.categolj.common])
   (:use [am.ik.categolj.daccess daccess entities])
   (:use [clojure.contrib singleton])
   (:require [clojure.contrib.logging :as log])
   (:require [clojure.string :as str])
   (:import [am.ik.categolj.daccess.entities Entry Category User])
-  (:import [am.ik.categolj.daccess.mirage.entities EntryEntity CategoryEntity EntryCategory])
+  (:import [am.ik.categolj.daccess.mirage.entities EntryEntity CategoryEntity EntryCategory UserEntity])
   (:import [jp.sf.amateras.mirage SqlManager])
   (:import [jp.sf.amateras.mirage.session Session JDBCSessionImpl])
   (:import [jp.sf.amateras.mirage.exception SQLRuntimeException]))
@@ -99,6 +99,12 @@
 (defn %insert-category-if-not-exists [subprotocol ^Session session params]
   (if (< (%get-category-count-by-name-and-index subprotocol session params) 1)
     (%insert-category subprotocol session params) 0))
+
+(defn %insert-user [subprotocol ^Session session params]
+  (%update-by-sql session (get-sql-path subprotocol "insert-user.sql") params))
+
+(defn %get-user-by-name-and-password [subprotocol ^Session session params]
+  (%get-single-entity-by-sql session UserEntity (get-sql-path subprotocol "get-user-by-name-and-password.sql") params))
 
 (defn ^Entry entity-to-record [^EntryEntity entity]
   (if entity
@@ -208,6 +214,14 @@
      (with-tx [session]
        (%get-entry-count subprotocol session
                          {"index" (first target), "name" (second target)}))))
+
+  (auth-user
+   [this user]
+   (let [name (:name user)
+         password (:password user)]
+     (with-tx [session]
+       (%get-user-by-name-and-password subprotocol session
+                                       {"name" name, "password" (md5 password)}))))
   )
 
 
@@ -249,6 +263,8 @@
           (%insert-entry-category subprotocol session {"entry-id" 5, "category-id" 2})
           (%insert-entry-category subprotocol session {"entry-id" 5, "category-id" 3})
           (%insert-entry-category subprotocol session {"entry-id" 6, "category-id" 1})
+          ;;
+          (%insert-user subprotocol session {"id" 1, "name" "aaaa", "password" (md5 "aaaa")})
           )))))
 
 

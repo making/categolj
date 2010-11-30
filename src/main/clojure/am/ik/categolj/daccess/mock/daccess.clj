@@ -1,6 +1,6 @@
 (ns am.ik.categolj.daccess.mock.daccess
   (:use [am.ik.categolj.daccess daccess entities])
-  (:use [am.ik.categolj.utils date-utils])
+  (:use [am.ik.categolj.utils date-utils string-utils])
   (:import [am.ik.categolj.daccess.entities Entry Category User]))
 
 (def *data* (ref {44 (Entry.
@@ -22,6 +22,7 @@
                        :category ["開発環境" "IDE" "Emacs"]
                        }),
                        }))
+(def *user* (User. {} {:id 1, :name "aaaa", :password (md5 "aaaa")}))
 
 (defrecord MockDataAccess []
   DataAccess
@@ -67,6 +68,12 @@
   (get-categorized-entry-count
    [this category]
    (get-total-entry-count this))
+
+  (auth-user
+   [this user]
+   (if (and (= (:name user) (:name *user*))
+            (= (md5 (:password user)) (:password *user*)))
+     *user*))
   )
 
 (defn create-daccess [params]

@@ -17,5 +17,9 @@
                          :password ""}
                     :ddl "create-table.sql"
                     }},
+ ;; uploader
+ :uploader {:ns am.ik.categolj.uploader.simple-uploader,
+            :params {:upload-dir "/upload/",
+                     :file-id-digits 5}},
  :count-per-page 3,
  :count-of-recently 5}

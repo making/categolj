@@ -1,14 +1,17 @@
 (ns am.ik.categolj.core
   (:use [ring.adapter.jetty])
-  (:use [ring.middleware reload stacktrace static session])
+  (:use [ring.middleware reload stacktrace static session multipart-params])
   (:use [ring.util.response])
+  (:use [ring.middleware.json-params])
   (:use [clojure.contrib.singleton])
   (:use [compojure core])
-  (:use [am.ik.categolj.common])
-  (:use [am.ik.categolj.utils string-utils date-utils logging-utils])
+  (:use [am.ik.categolj common])
+  (:use [am.ik.categolj.utils string-utils date-utils logging-utils] :reload-all)
   (:use [am.ik.categolj.daccess daccess entities])
+  (:use [am.ik.categolj.uploader uploader])
   (:require [net.cgrand.enlive-html :as en])
   (:require [compojure.route :as route])
+  (:require [clj-json.core :as json])
   (:require [clojure.contrib.logging :as log])
   (:require [clojure.java.io :as io])
   (:require [clojure.string :as str])
@@ -26,6 +29,10 @@
 (require [(get-in *config* [:daccess :ns]) :as 'dac])
 (def *dac* (global-singleton
             #(dac/create-daccess (get-in *config* [:daccess :params]))))
+;; load uploader
+(require [(get-in *config* [:uploader :ns]) :as 'ul])
+(def *uploader* (global-singleton
+                 #(ul/create-upload-manager (get-in *config* [:uploader :params]))))
 
 (defn get-template [filename]
   (str *theme-dir* "/pages/" filename))
@@ -182,6 +189,12 @@
   {:status 404
    :headers {"Content-Type" *content-type*}
    :body body})
+
+(defn json-response [data & [status]]
+  {:status (or status 200)
+   ;;   :headers {"Content-Type" "application/json"} ;; doesn't work with jquery.upload
+   :headers {"Content-Type" *content-type*}
+   :body (json/generate-string data)})
 ;;
 
 ;; view
@@ -314,6 +327,7 @@
         entry-count (get-categorized-entry-count (*dac*) category)
         count-per-page (:count-per-page *config*)
         total-page (calc-total-page entry-count count-per-page)]
+    (println "cat=" category)
     (res200 (categolj-layout
              req
              (:title *config*) 
@@ -351,6 +365,24 @@
   (let [res (redirect "/")]
     (assoc-in res [:session :user] nil)))
 
+(defn json-do-upload [req]
+  (let [file (get-in req [:params "file"])
+        res (upload (*uploader*) file)]
+    (json-response res)))
+
+(defn json-do-delete-upload-file [req]
+  (let [id (Integer/parseInt (get-in req [:params "id"]))
+        res (delete-uploaded-file-by-id (*uploader*) id)]
+    (log/debug res)
+    (json-response res)))
+
+(defn json-view-uploaded-files [req]
+  (let [page (Integer/parseInt (get-in req [:params "page"]))
+        count (Integer/parseInt (get-in req [:params "count"]))
+        res (get-uploaded-files-by-page (*uploader*) page count)]
+    (json-response res)))
+
+
 ;; rooting
 (defroutes categolj
   (GET ["/entry/view/id/:id*", :id #"[0-9]+"] req (view-entry req))
@@ -366,6 +398,11 @@
   (GET ["/login"] req (view-login req))
   (POST ["/login"] req (do-login req))
   (GET ["/logout"] req (do-logout req))
+  (POST ["/upload/delete/:id*", :id #"[0-9]+"] req (json-do-delete-upload-file req))
+  (GET ["/upload/view/:page/:count*", :page #"[0-9]+", :count #"[0-9]+"]
+       req (json-view-uploaded-files req))
+  (wrap-multipart-params
+   (POST ["/upload"] req (json-do-upload req)))
   (GET "/favicon.ico*" req req)
   (GET "/" req (view-top req))
   (ANY "*" req (not-found req))
@@ -393,12 +430,14 @@
 
 ;; app
 (def app
-     (let [excludes (:static-dir *config*)]
+     (let [upload-dir (get-in *config* [:uploader :params :upload-dir])
+           excludes (into (:static-dir *config*) [upload-dir "/favicon.ico"])]
        (-> #'categolj
            (wrap-session)
            (trace-request excludes)
            (wrap-static (.getPath (get-resource (str *theme-dir* "/public/"))) (:static-dir *config*))
-           ;;(wrap-reload '(am.ik.categolj.core am.ik.categolj.common)) ;; hot reloading
+           (wrap-static (.getPath (java.io.File. ".")) [upload-dir])
+           (wrap-reload '(am.ik.categolj.core am.ik.categolj.common)) ;; hot reloading
            (trace-response excludes)
            (wrap-stacktrace)
            )))

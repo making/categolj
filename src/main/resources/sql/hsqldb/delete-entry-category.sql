@@ -8,6 +8,6 @@ WHERE
      /*END*/
      /*IF category_id == null && name != null*/
      AND
-     category_id = (SELECT id FROM Category WHERE name = /*name*/'Hoge')
+     category_id = (SELECT id FROM Category WHERE name = /*name*/'Hoge' LIMIT 1)
      /*END*/
      

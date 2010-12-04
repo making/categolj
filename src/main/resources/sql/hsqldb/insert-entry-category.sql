@@ -10,6 +10,6 @@ VALUES (
      /*category_id*/1
 /*END*/
 /*IF name != null*/
-     (SELECT id FROM Category WHERE name = /*name*/'Hoge')
+     (SELECT id FROM Category WHERE name = /*name*/'Hoge' LIMIT 1)
 /*END*/
 )

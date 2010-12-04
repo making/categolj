@@ -3,26 +3,26 @@
   (:use [am.ik.categolj.utils date-utils string-utils])
   (:import [am.ik.categolj.daccess.entities Entry Category User]))
 
-(def *data* (ref {44 (Entry.
-                      {}                  
-                      {:id 44, 
-                       :title "WindowsでLeiningen", 
-                       :created-at (parse-date "2010/10/05 02:24:44")
-                       :updated-at (parse-date "2010/10/05 02:47:30")
-                       :content "知らない間にLeiningenがWindows対応していました"
-                       :category ["Programming" "Lisp" "Clojure" "Leiningen"]
-                       }),
-                  43 (Entry.
-                      {}
-                      {:id 43, 
-                       :title "ELPA(Emacs Lisp Package Archive) を使う", 
-                       :created-at (parse-date "2010/10/02 11:35:22")
-                       :updated-at (parse-date "2010/10/02 11:54:29")
-                       :content "以下を`*scratch*`に貼り付けて`Ctrl+j`で.emacs.elがupdateされる。"
-                       :category ["開発環境" "IDE" "Emacs"]
-                       }),
-                       }))
-(def *user* (User. {} {:id 1, :name "aaaa", :password (md5 "aaaa")}))
+(def ^{:dynamic true} *data* (ref {44 (Entry.
+                                       {}                  
+                                       {:id 44, 
+                                        :title "WindowsでLeiningen", 
+                                        :created-at (parse-date "2010/10/05 02:24:44")
+                                        :updated-at (parse-date "2010/10/05 02:47:30")
+                                        :content "知らない間にLeiningenがWindows対応していました"
+                                        :category ["Programming" "Lisp" "Clojure" "Leiningen"]
+                                        }),
+                                   43 (Entry.
+                                       {}
+                                       {:id 43, 
+                                        :title "ELPA(Emacs Lisp Package Archive) を使う", 
+                                        :created-at (parse-date "2010/10/02 11:35:22")
+                                        :updated-at (parse-date "2010/10/02 11:54:29")
+                                        :content "以下を`*scratch*`に貼り付けて`Ctrl+j`で.emacs.elがupdateされる。"
+                                        :category ["開発環境" "IDE" "Emacs"]
+                                        }),
+                                   }))
+(def ^{:dynamic true} *user* (User. {} {:id 1, :name "aaaa", :password (md5 "aaaa")}))
 
 (defrecord MockDataAccess []
   DataAccess

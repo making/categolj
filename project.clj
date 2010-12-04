@@ -1,11 +1,11 @@
-(defproject categolj "1.0.0-SNAPSHOT"
+(defproject categolj "1.0.0-alpha1"
   :description "FIXME: write"
   :repositories {"scala-tools" "http://scala-tools.org/repo-releases",
                  "amateras" "http://amateras.sourceforge.jp/mvn/"}
-  :dependencies [[org.clojure/clojure "1.3.0-alpha1"]
-                 [org.clojure.contrib/def "1.3.0-alpha1"]
-                 [org.clojure.contrib/singleton "1.3.0-alpha1"]
-                 [org.clojure.contrib/logging "1.3.0-alpha1"]
+  :dependencies [[org.clojure/clojure "1.3.0-alpha3"]
+                 [org.clojure.contrib/def "1.3.0-alpha3"]
+                 [org.clojure.contrib/singleton "1.3.0-alpha3"]
+                 [org.clojure.contrib/logging "1.3.0-alpha3"]
                  [org.slf4j/slf4j-api "1.6.1"]
                  [org.slf4j/jul-to-slf4j "1.6.1"]
                  [ch.qos.logback/logback-core "0.9.24"]
@@ -17,8 +17,6 @@
                  [enlive "1.0.0-SNAPSHOT" :exclusions [org.clojure/clojure-contrib]]
                  [org.markdownj/markdownj "0.3.0-1.0.2b4"]
                  [org.hsqldb/hsqldb "2.0.0"]
-                 ;; [org.apache.cassandra/cassandra "0.6.5"]
-                 ;; [org.apache.thrift/libthrift "r917130"]
                  [jp.sf.amateras.mirage/mirage "1.0.5"]
                  ]
 

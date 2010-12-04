@@ -1,5 +1,6 @@
 (ns am.ik.categolj.utils.string-utils
   (:import [org.apache.commons.lang.builder ToStringBuilder])
+  (:import [org.apache.commons.codec.net URLCodec])
   (:import [java.security MessageDigest])
   (:require [clojure.string :as str]))
 

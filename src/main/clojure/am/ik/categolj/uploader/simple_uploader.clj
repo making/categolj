@@ -4,14 +4,10 @@
   (:require [clojure.string :as str])
   (:require [clojure.java.io :as io]))
 
-(def *resources* (ref {}))
+(defonce ^{:dynamic true} *resources* (ref {}))
 
 (defn filter-directory [fs]
   (filter #(.isDirectory ^java.io.File %) fs))
-
-(defn delete-recursively [^java.io.File f]
-  
-  )
 
 (defn init-resources [upload-dir]
   (let [^java.io.File dir (io/file upload-dir)]

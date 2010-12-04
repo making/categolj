@@ -1,0 +1,1 @@
+SELECT id, title FROM Entry ORDER BY updated_at DESC LIMIT /*limit*/5       

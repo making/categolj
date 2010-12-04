@@ -10,7 +10,15 @@
  
  ;; MirageDataAccess
  :daccess {:ns am.ik.categolj.daccess.mirage.daccess,
-           :params {:db {:classname "org.hsqldb.jdbcDriver"
+           :params {
+                    ;; MySQL
+                    ;; :db {:classname "com.mysql.jdbc.Driver"
+                    ;;      :subprotocol "mysql"
+                    ;;      :subname "//localhost/categolj?zeroDateTimeBehavior=convertToNull&characterEncoding=UTF-8&characterSetResults=UTF-8"
+                    ;;      :user "root"
+                    ;;      :password ""}
+                    ;; HSQLDB
+                    :db {:classname "org.hsqldb.jdbcDriver"
                          :subprotocol "hsqldb"
                          :subname "mem:categolj"
                          :user "sa"

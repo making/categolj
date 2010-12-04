@@ -1,0 +1,1 @@
+DELETE FROM Entry WHERE id = /*id*/1

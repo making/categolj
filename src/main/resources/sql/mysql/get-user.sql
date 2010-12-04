@@ -1,0 +1,1 @@
+SELECT id, name, password FROM User WHERE name = /*name*/'hoge' AND password = /*password*/'ea703e7aa1efda0064eaa507d9e8ab7e'

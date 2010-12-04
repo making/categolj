@@ -17,6 +17,7 @@
                  [enlive "1.0.0-SNAPSHOT" :exclusions [org.clojure/clojure-contrib]]
                  [org.markdownj/markdownj "0.3.0-1.0.2b4"]
                  [org.hsqldb/hsqldb "2.0.0"]
+                 [mysql/mysql-connector-java "5.1.13"]
                  [jp.sf.amateras.mirage/mirage "1.0.5"]
                  ]
 

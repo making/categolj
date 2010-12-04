@@ -449,7 +449,7 @@
            (trace-request excludes)
            (wrap-static (.getPath (get-resource (str *theme-dir* "/public/"))) (:static-dir *config*))
            (wrap-static (.getPath (java.io.File. ".")) [upload-dir])
-           (wrap-reload '(am.ik.categolj.core am.ik.categolj.common)) ;; hot reloading
+           ;;(wrap-reload '(am.ik.categolj.core am.ik.categolj.common)) ;; hot reloading
            (trace-response excludes)
            (wrap-stacktrace)
            )))

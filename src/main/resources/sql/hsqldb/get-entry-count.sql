@@ -1,5 +1,5 @@
 SELECT 
-     e.id 
+     COUNT(e.id)
 FROM 
      Entry as e
 /*IF name != null && index != null*/     

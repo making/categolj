@@ -48,9 +48,7 @@
     (.getResultList manager clazz sql-file params)))
 
 (defn %get-count-by-sql [^Session session sql-file params]
-  (log/debug (str "params=" params))
-  (let [^SqlManager manager (.getSqlManager session)]
-    (.getCount manager sql-file params)))
+  (%get-single-entity-by-sql session Long sql-file params))
   
 
 (defn get-sql-path [subprotocol file-name]

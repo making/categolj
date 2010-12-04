@@ -1,21 +1,29 @@
 <div class='contents edit-form'>
+  <script type='text/javascript'>
+    wmd_options = {output: 'Markdown'};
+  </script>
   <script src='/js/wmd/wmd.js' type='text/javascript'></script>  
   <script src='/js/jquery-1.4.4.min.js' type='text/javascript'></script>  
   <script src='/js/jquery.upload-1.0.2.min.js' type='text/javascript'></script>  
   <script type='text/javascript'>
-    wmd_options = {output: 'Markdown'};
+    function isImage(ext) {
+      return ext == "png" || ext == "jpg" || ext == "gif";
+    }
+
     function appendRow(obj, file) {
       var path = "/" + file.filename;
       var ext = file.ext;
       var id = file.id;
       var img;
-      if (ext == "png" || ext == "jpg" || ext == "gif") {
+      if (isImage(ext)) {
         img = "<a href='" + path + "'><img src='" + path + "' width='50' /></a>";
       } else {
         img = "<a href='" + path + "'>NOT IMG</a>";
       }
-      obj.append("<tr id='row" + id + "'><td>" + id + "</td><td>" + img + "</td><td><input value='" + path + "' /></td><td>"
-                  + ext + "</td><td>" + file.size + "</td><td><input type='button' value='DEL' onclick='deleteFile(" + id + ")' /></td></tr>");
+      obj.append("<tr id='row" + id + "'><td onclick='focusPath(" + id + ")' style='cursor:pointer'>" + id + "</td>"
+                  + "<td>" + img + "</td><td><input id='path" + id + "' value='" + path + "' /></td><td id='ext" + id + "'>"
+                  + ext + "</td><td>" + file.size + "</td><td><input type='button' value='DEL' onclick='deleteFile(" + id + ")' /></td>"
+                  + "<td><input type='button' value='INS' onclick='insertHtml(" + id + ")' /></td></tr>");
     }
 
     function deleteFile(id) {
@@ -30,6 +38,26 @@
       }
     }
 
+    function focusPath(id) {
+      $("#path" + id).focus();
+    }
+
+    function insertHtml(id) {
+      var ext = $("#ext" + id).html();
+      var path = $("#path" + id).attr("value");
+      var html = "<a href='" + path + "'>";
+      var body = $("#field-body");
+      if (isImage(ext)) {
+        html += "<img src='" + path+ "' />";
+      } else {
+        html += path;
+      }
+      html += "</a>";
+      var text = body.text() + "\n" + html;
+      body.text(text);
+    }
+
+    // init
     $(function() {
       $.get("/upload/view/1/1", function(res) {
         if (res.res == "ok") { 
@@ -41,20 +69,23 @@
         } else {
           alert("get files failed");
         }
-      }, 'json')
-    })
-
-    $(function() {
-        $("#upload-file").change(function() {
-            $(this).upload("/upload", function(res) {
-                if (res.res == "ok") {
-                  appendRow($("#upload-result"), res.file);
-                } else {
-                  alert("upload failed");
-                }
-                $("#upload-file").val("");
-            }, 'json');
-        });
+      }, 'json');
+      $("#upload-file").change(function() {
+          $(this).upload("/upload", function(res) {
+              if (res.res == "ok") {
+                appendRow($("#upload-result"), res.file);
+              } else {
+                alert("upload failed");
+              }
+              $("#upload-file").val("");
+          }, 'json');
+      });
+      $("#uploader").click(function() {
+        $("#uploader-content").slideToggle();
+      })
+      $("#preview").click(function() {
+        $("#preview-content").slideToggle();
+      });
     });
   </script>
 
@@ -110,12 +141,14 @@
     </ul>
   </form>
   <hr />
-  <h3>Uploader</h3>  
-  <input name="file" type="file" id="upload-file" />
-  <table id="upload-result">
-    <tr><th>ID</th><th>IMG</th><th>PATH</th><th>EXT</th><th>SIZE</th><th>DEL</th></tr>
-  </table>
+  <h3 id="uploader" style="cursor:pointer">Uploader</h3>  
+  <div id="uploader-content" style="display:none">
+    <input name="file" type="file" id="upload-file" />
+    <table id="upload-result">
+      <tr><th>ID</th><th>IMG</th><th>PATH</th><th>EXT</th><th>SIZE</th><th>DEL</th><th>INS</th></tr>
+    </table>
+  </div>
   <hr />
-  <h3>Live Preview</h3>
-  <div class='wmd-preview' />
+  <h3 id="preview" style="cursor:pointer">Live Preview</h3>
+  <div id="preview-content" class='wmd-preview' />
 </div>

@@ -20,18 +20,18 @@
 
 (install-slfj-bridge-handler)
 
-(def *config* (read-string (slurp (get-resource "config.clj"))))
-(def *theme-dir* (str "theme/" (:theme *config*)))
-(def *content-type* (str "text/html;charset=" (:charset *config*)))
-(def *category-separator* (:category-separator *config*))
+(def ^{:dynamic true} *config* (read-string (slurp (get-resource "config.clj"))))
+(def ^{:dynamic true} *theme-dir* (str "theme/" (:theme *config*)))
+(def ^{:dynamic true} *content-type* (str "text/html;charset=" (:charset *config*)))
+(def ^{:dynamic true} *category-separator* (:category-separator *config*))
 
 ;; load daccess
 (require [(get-in *config* [:daccess :ns]) :as 'dac])
-(def *dac* (global-singleton
+(def ^{:dynamic true} *dac* (global-singleton
             #(dac/create-daccess (get-in *config* [:daccess :params]))))
 ;; load uploader
 (require [(get-in *config* [:uploader :ns]) :as 'ul])
-(def *uploader* (global-singleton
+(def ^{:dynamic true} *uploader* (global-singleton
                  #(ul/create-upload-manager (get-in *config* [:uploader :params]))))
 
 (defn get-template [filename]
@@ -42,7 +42,7 @@
             (for [[name url] (get-category-url category-seq)]
               (str "<span class='category'><a href='" url "'>" name "</a></span>"))))
 
-(def *markdown* (per-thread-singleton #(MarkdownProcessor.)))
+(def ^{:dynamic true} *markdown* (per-thread-singleton #(MarkdownProcessor.)))
 
 ;; snipetts
 (en/defsnippet categolj-header
@@ -327,7 +327,6 @@
         entry-count (get-categorized-entry-count (*dac*) category)
         count-per-page (:count-per-page *config*)
         total-page (calc-total-page entry-count count-per-page)]
-    (println "cat=" category)
     (res200 (categolj-layout
              req
              (:title *config*) 
@@ -356,7 +355,7 @@
         password (get-in req [:params "password"])
         user (auth-user (*dac*) {:name name, :password password})
         referer (get-in req [:params "referer"])
-        res (redirect (or referer "/"))]
+        res (redirect (if (and referer (not (= referer "/login"))) referer "/"))]
     (if user 
       (assoc-in res [:session :user] user)
       (view-login req "Login is failed."))))
@@ -382,27 +381,40 @@
         res (get-uploaded-files-by-page (*uploader*) page count)]
     (json-response res)))
 
+(defn check-auth [f req]
+  (let [user (get-user req)]
+    (if user
+      (f req)
+      (redirect "/login"))))
 
+(defn check-auth-json [f req]
+  (let [user (get-user req)]
+    (if user
+      (f req)
+      (json-response {:res "not-authorized"}))))
+  
 ;; rooting
 (defroutes categolj
   (GET ["/entry/view/id/:id*", :id #"[0-9]+"] req (view-entry req))
   (GET ["/page/:page/category/:category", :page #"[0-9]+", :category #"(.+\/)+"] req (view-category req))
   (GET ["/page/:page*", :page #"[0-9]+"] req (view-top req))
   (GET ["/category/:category", :category #"(.+\/)+"] req (view-category req))
-  (GET ["/entry/create*"] req (view-create req))
-  (POST ["/entry/create*"] req (do-create req))
-  (GET ["/entry/edit/id/:id*", :id #"[0-9]+"] req (view-edit req))
-  (POST ["/entry/edit/id/:id*", :id #"[0-9]+"] req (do-edit req))
-  (GET ["/entry/delete/id/:id*", :id #"[0-9]+"] req (view-delete req))
-  (POST ["/entry/delete/id/:id*", :id #"[0-9]+"] req (do-delete req))
+  (GET ["/entry/create*"] req (check-auth view-create req))
+  (POST ["/entry/create*"] req (check-auth do-create req))
+  (GET ["/entry/edit/id/:id*", :id #"[0-9]+"] req (check-auth view-edit req))
+  (POST ["/entry/edit/id/:id*", :id #"[0-9]+"] req (check-auth do-edit req))
+  (GET ["/entry/delete/id/:id*", :id #"[0-9]+"] req (check-auth view-delete req))
+  (POST ["/entry/delete/id/:id*", :id #"[0-9]+"] req (check-auth do-delete req))
   (GET ["/login"] req (view-login req))
   (POST ["/login"] req (do-login req))
   (GET ["/logout"] req (do-logout req))
-  (POST ["/upload/delete/:id*", :id #"[0-9]+"] req (json-do-delete-upload-file req))
-  (GET ["/upload/view/:page/:count*", :page #"[0-9]+", :count #"[0-9]+"]
-       req (json-view-uploaded-files req))
+  (POST ["/upload/delete/:id*", :id #"[0-9]+"] req
+        (check-auth-json json-do-delete-upload-file req))
+  (GET ["/upload/view/:page/:count*", :page #"[0-9]+", :count #"[0-9]+"] req
+       (check-auth-json json-view-uploaded-files req))
   (wrap-multipart-params
-   (POST ["/upload"] req (json-do-upload req)))
+   (POST ["/upload"] req
+         (check-auth-json json-do-upload req)))
   (GET "/favicon.ico*" req req)
   (GET "/" req (view-top req))
   (ANY "*" req (not-found req))

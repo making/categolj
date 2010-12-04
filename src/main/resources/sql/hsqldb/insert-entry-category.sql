@@ -1,8 +1,13 @@
 INSERT INTO EntryCategory (entry_id, category_id) 
 VALUES (
-     /*entry-id*/1,
+/*IF entry_id != null */
+     /*entry_id*/1,
+/*END*/
+/*IF entry_id == null */
+     (SELECT id FROM Entry ORDER BY id DESC LIMIT 1),
+/*END*/
 /*IF name == null*/
-     /*category-id*/1
+     /*category_id*/1
 /*END*/
 /*IF name != null*/
      (SELECT id FROM Category WHERE name = /*name*/'Hoge')

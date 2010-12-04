@@ -1,9 +1,13 @@
 DELETE FROM 
      EntryCategory 
 WHERE 
-     entry_id = /*entry-id*/1
-     /*IF category-id != null*/
+     entry_id = /*entry_id*/1
+     /*IF category_id != null*/
      AND
-     category_id = /*category-id*/1
+     category_id = /*category_id*/1
+     /*END*/
+     /*IF category_id == null && name != null*/
+     AND
+     category_id = (SELECT id FROM Category WHERE name = /*name*/'Hoge')
      /*END*/
      

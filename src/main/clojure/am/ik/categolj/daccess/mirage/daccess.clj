@@ -11,6 +11,8 @@
   (:import [jp.sf.amateras.mirage.session Session JDBCSessionImpl])
   (:import [jp.sf.amateras.mirage.exception SQLRuntimeException]))
 
+(defn indexed [s]
+  (map vector (iterate inc 1) s))
 
 (defmacro with-tx [[^Session session] & expr]
   `(do
@@ -31,24 +33,28 @@
   (JDBCSessionImpl. classname (str "jdbc:" subprotocol ":" subname) user password))
 
 (defn %update-by-sql [^Session session sql-file params]
+  (log/debug (str "params=" params))
   (let [^SqlManager manager (.getSqlManager session)]
     (.executeUpdate manager sql-file params)))
 
 (defn %get-single-entity-by-sql [^Session session clazz sql-file params]
+  (log/debug (str "params=" params))
   (let [^SqlManager manager (.getSqlManager session)]
     (.getSingleResult manager clazz sql-file params)))
 
 (defn %get-entities-by-sql [^Session session clazz sql-file params]
+  (log/debug (str "params=" params))
   (let [^SqlManager manager (.getSqlManager session)]
     (.getResultList manager clazz sql-file params)))
 
 (defn %get-count-by-sql [^Session session sql-file params]
+  (log/debug (str "params=" params))
   (let [^SqlManager manager (.getSqlManager session)]
     (.getCount manager sql-file params)))
   
 
 (defn get-sql-path [subprotocol file-name]
-  (log/debug (str subprotocol " " file-name))
+  (log/debug (str "sqlfile=" subprotocol "/" file-name))
   (str "sql/" subprotocol "/" file-name))
 
 (defn %insert-entry [subprotocol ^Session session params]
@@ -59,9 +65,6 @@
 
 (defn %insert-entry-category [subprotocol ^Session session params]
   (%update-by-sql session (get-sql-path subprotocol "insert-entry-category.sql") params))
-
-(defn %insert-entry-category-with-latest-entry [subprotocol ^Session session params]
-  (%update-by-sql session (get-sql-path subprotocol "insert-entry-category-with-latest-entry.sql") params))
 
 (defn %update-entry [subprotocol ^Session session params]
   (%update-by-sql session (get-sql-path subprotocol "update-entry.sql") params))
@@ -75,14 +78,11 @@
 (defn %get-entry-count [subprotocol ^Session session params]
   (%get-count-by-sql session (get-sql-path subprotocol "get-entry-count.sql") params))
 
-(defn %get-category-count-by-name-and-index [subprotocol ^Session session params]
-  (%get-count-by-sql session (get-sql-path subprotocol "get-category-count-by-name-and-index.sql") params))
-  
+(defn %get-category-count [subprotocol ^Session session params]
+  (%get-count-by-sql session (get-sql-path subprotocol "get-category-count.sql") params))
+
 (defn %delete-entry-category [subprotocol ^Session session params]
   (%update-by-sql session (get-sql-path subprotocol "delete-entry-category.sql") params))
-
-(defn %delete-entry-category-by-name-and-entry-id [subprotocol ^Session session params]
-  (%update-by-sql session (get-sql-path subprotocol "delete-entry-category-by-name-and-entry-id.sql") params))
 
 (defn ^EntryEntity %get-entry-by-id [subprotocol ^Session session params]
   (%get-single-entity-by-sql session EntryEntity (get-sql-path subprotocol "get-entry-by-id.sql") params))
@@ -97,14 +97,14 @@
   (%get-entities-by-sql session EntryEntity (get-sql-path subprotocol "get-entries-only-id-title.sql") params))
 
 (defn %insert-category-if-not-exists [subprotocol ^Session session params]
-  (if (< (%get-category-count-by-name-and-index subprotocol session params) 1)
+  (if (< (%get-category-count subprotocol session params) 1)
     (%insert-category subprotocol session params) 0))
 
 (defn %insert-user [subprotocol ^Session session params]
   (%update-by-sql session (get-sql-path subprotocol "insert-user.sql") params))
 
-(defn %get-user-by-name-and-password [subprotocol ^Session session params]
-  (%get-single-entity-by-sql session UserEntity (get-sql-path subprotocol "get-user-by-name-and-password.sql") params))
+(defn %get-user [subprotocol ^Session session params]
+  (%get-single-entity-by-sql session UserEntity (get-sql-path subprotocol "get-user.sql") params))
 
 (defn ^Entry entity-to-record [^EntryEntity entity]
   (if entity
@@ -174,7 +174,7 @@
      (let [added (indexed-set (:category entry))]
        (doseq [[index name] added]
          (%insert-category-if-not-exists subprotocol session {"name" name, "index" index})
-         (%insert-entry-category-with-latest-entry subprotocol session {"name" name})))))
+         (%insert-entry-category subprotocol session {"name" name, "entry_id" nil})))))
   
   (update-entry
    [this entry]
@@ -187,11 +187,11 @@
            added (:added diff)]
        ;; delete removed categories
        (doseq [[index name] removed]
-         (%delete-entry-category-by-name-and-entry-id subprotocol session {"entry-id" entry-id, "name" name}))
+         (%delete-entry-category subprotocol session {"entry_id" entry-id, "name" name, "category_id" nil}))
        ;; insert added categories
        (doseq [[index name] added]
          (%insert-category-if-not-exists subprotocol session {"name" name, "index" index})
-         (%insert-entry-category subprotocol session {"entry-id" entry-id, "name" name})))))
+         (%insert-entry-category subprotocol session {"entry_id" entry-id, "name" name})))))
   
   (delete-entry
    [this entry]
@@ -200,7 +200,7 @@
 
   (get-categorized-entries-by-page
    [this category page count]
-   (let [target (last (indexed-set category))]
+   (let [target (last (indexed category))]
      ;; ignore butlast category... (TODO)
      (with-tx [session]
        (get-entry-records-with-category-by-page subprotocol session
@@ -220,17 +220,17 @@
    (let [name (:name user)
          password (:password user)]
      (with-tx [session]
-       (%get-user-by-name-and-password subprotocol session
-                                       {"name" name, "password" (md5 password)}))))
+       (%get-user subprotocol session
+                  {"name" name, "password" (md5 password)}))))
   )
 
 
 (defn create-table
   "create Entry table if not exists."
-  [subprotocol ^Session session ddl]
+  [subprotocol ^Session session]
   (with-tx [session]    
     (let [^SqlManager manager (.getSqlManager session)
-          ddl-lines (str/split (slurp (get-resource (get-sql-path subprotocol ddl))) #";")]
+          ddl-lines (str/split (slurp (get-resource (get-sql-path subprotocol "create-table.sql"))) #";")]
       (try
         ;; Check whether ENTITY table exists.
         (.getSingleResultBySql manager Integer "SELECT COUNT(id) FROM Entry")
@@ -251,18 +251,18 @@
           (%insert-category subprotocol session {"id" 3, "name" "Bar", "index" 3})
           (%insert-category subprotocol session {"id" 4, "name" "Aho", "index" 3})
           ;;
-          (%insert-entry-category subprotocol session {"entry-id" 1, "category-id" 1})
-          (%insert-entry-category subprotocol session {"entry-id" 1, "category-id" 2})
-          (%insert-entry-category subprotocol session {"entry-id" 2, "category-id" 1})
-          (%insert-entry-category subprotocol session {"entry-id" 2, "category-id" 2})
-          (%insert-entry-category subprotocol session {"entry-id" 3, "category-id" 1})
-          (%insert-entry-category subprotocol session {"entry-id" 4, "category-id" 1})
-          (%insert-entry-category subprotocol session {"entry-id" 4, "category-id" 2})
-          (%insert-entry-category subprotocol session {"entry-id" 4, "category-id" 4})
-          (%insert-entry-category subprotocol session {"entry-id" 5, "category-id" 1})         
-          (%insert-entry-category subprotocol session {"entry-id" 5, "category-id" 2})
-          (%insert-entry-category subprotocol session {"entry-id" 5, "category-id" 3})
-          (%insert-entry-category subprotocol session {"entry-id" 6, "category-id" 1})
+          (%insert-entry-category subprotocol session {"entry_id" 1, "category_id" 1})
+          (%insert-entry-category subprotocol session {"entry_id" 1, "category_id" 2})
+          (%insert-entry-category subprotocol session {"entry_id" 2, "category_id" 1})
+          (%insert-entry-category subprotocol session {"entry_id" 2, "category_id" 2})
+          (%insert-entry-category subprotocol session {"entry_id" 3, "category_id" 1})
+          (%insert-entry-category subprotocol session {"entry_id" 4, "category_id" 1})
+          (%insert-entry-category subprotocol session {"entry_id" 4, "category_id" 2})
+          (%insert-entry-category subprotocol session {"entry_id" 4, "category_id" 4})
+          (%insert-entry-category subprotocol session {"entry_id" 5, "category_id" 1})         
+          (%insert-entry-category subprotocol session {"entry_id" 5, "category_id" 2})
+          (%insert-entry-category subprotocol session {"entry_id" 5, "category_id" 3})
+          (%insert-entry-category subprotocol session {"entry_id" 6, "category_id" 1})
           ;;
           (%insert-user subprotocol session {"id" 1, "name" "aaaa", "password" (md5 "aaaa")})
           )))))
@@ -270,7 +270,6 @@
 
 (defn create-daccess [params]
   (let [{:keys [classname subprotocol subname user password]} (:db params)
-        session (create-session classname subprotocol subname user password)
-        ddl (:ddl params)]
-    (create-table subprotocol session ddl)    
+        session (create-session classname subprotocol subname user password)]
+    (create-table subprotocol session)    
     (MirageDataAccess. subprotocol session)))

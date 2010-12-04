@@ -15,7 +15,6 @@
                          :subname "mem:categolj"
                          :user "sa"
                          :password ""}
-                    :ddl "create-table.sql"
                     }},
  ;; uploader
  :uploader {:ns am.ik.categolj.uploader.simple-uploader,

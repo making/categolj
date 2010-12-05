@@ -207,7 +207,7 @@
   
   (get-categorized-entry-count
    [this category]
-   (let [target (last (indexed-set category))]
+   (let [target (last (indexed category))]
      ;; ignore butlast category... (TODO)
      (with-tx [session]
        (%get-entry-count subprotocol session

@@ -29,4 +29,11 @@
             :params {:upload-dir "/upload/",
                      :file-id-digits 5}},
  :count-per-page 3,
- :count-of-recently 5}
+ :count-of-recently 5,
+ 
+ ;; feed info
+ :description "Blog powered by CategoLJ",
+ :author "you",
+ :link "http://example.com",
+ :feed-type "rss_2.0",
+}

@@ -5,7 +5,7 @@
   (:use [ring.middleware.json-params])
   (:use [clojure.contrib.singleton])
   (:use [compojure core])
-  (:use [am.ik.categolj common])
+  (:use [am.ik.categolj common markdown feed] :reload-all)
   (:use [am.ik.categolj.utils string-utils date-utils logging-utils] :reload-all)
   (:use [am.ik.categolj.daccess daccess entities])
   (:use [am.ik.categolj.uploader uploader])
@@ -16,7 +16,7 @@
   (:require [clojure.java.io :as io])
   (:require [clojure.string :as str])
   (:import [am.ik.categolj.daccess.entities Entry Category User])
-  (:import [com.petebevin.markdown MarkdownProcessor]))
+  )
 
 (install-slfj-bridge-handler)
 
@@ -41,8 +41,6 @@
   (str/join *category-separator*
             (for [[name url] (get-category-url category-seq)]
               (str "<span class='category'><a href='" url "'>" name "</a></span>"))))
-
-(def ^{:dynamic true} *markdown* (per-thread-singleton #(MarkdownProcessor.)))
 
 ;; snipetts
 (en/defsnippet categolj-header
@@ -100,7 +98,7 @@
   (en/do-> (en/content title)
            (en/set-attr :href (get-entry-view-url id title)))
   [:.article-content]
-  (en/html-content (.markdown ^MarkdownProcessor (*markdown*) content))
+  (en/html-content (markdown content))
   [:.edit-menu :.edit]
   (if user
     (en/substitute (categolj-edit id)))
@@ -195,6 +193,11 @@
    ;;   :headers {"Content-Type" "application/json"} ;; doesn't work with jquery.upload
    :headers {"Content-Type" *content-type*}
    :body (json/generate-string data)})
+
+(defn feed-response [body & [status]]
+  {:status (or status 200)
+   :headers {"Content-Type" "text/xml"}
+   :body body})
 ;;
 
 ;; view
@@ -381,6 +384,10 @@
         res (get-uploaded-files-by-page (*uploader*) page count)]
     (json-response res)))
 
+(defn publish-feed [req]
+  (let [entries (get-entries-by-page (*dac*) 1 (:count-of-recently *config*))]
+    (feed-response (create-feed *config* entries))))
+
 (defn check-auth [f req]
   (let [user (get-user req)]
     (if user
@@ -415,6 +422,8 @@
   (wrap-multipart-params
    (POST ["/upload"] req
          (check-auth-json json-do-upload req)))
+  (GET "/feed" req (publish-feed req))
+  (GET "/rss" req (publish-feed req)) ;; for compatiblity with CategoL
   (GET "/favicon.ico*" req req)
   (GET "/" req (view-top req))
   (ANY "*" req (not-found req))

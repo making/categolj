@@ -19,6 +19,7 @@
                  [org.hsqldb/hsqldb "2.0.0"]
                  [mysql/mysql-connector-java "5.1.13"]
                  [jp.sf.amateras.mirage/mirage "1.0.5"]
+                 [net.java.dev.rome/rome "1.0.0"]
                  ]
 
   :dev-dependencies [[swank-clojure "1.3.0-SNAPSHOT"]

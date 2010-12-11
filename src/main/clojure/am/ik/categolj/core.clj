@@ -444,9 +444,10 @@
 (defn trace-response [app excludes]
   (fn [req]
     (let [res (app req)]
-      (if-not (uri-matches (:uri req) excludes)
-        (log/trace "[response]" (dissoc res :body)))
-        res)))
+      (when res 
+        (if-not (uri-matches (:uri req) excludes)
+          (log/trace "[response]" (dissoc res :body)))
+        res))))
 ;;
 
 ;; app

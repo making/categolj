@@ -11,9 +11,6 @@
   (:import [jp.sf.amateras.mirage.session Session JDBCSessionImpl])
   (:import [jp.sf.amateras.mirage.exception SQLRuntimeException]))
 
-(defn indexed [s]
-  (map vector (iterate inc 1) s))
-
 (defmacro with-tx [[^Session session] & expr]
   `(do
      (.begin ~session)

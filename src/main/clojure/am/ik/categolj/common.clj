@@ -35,8 +35,11 @@
 (defn keys-to-keyword [m]
   (keys-to keyword m))
 
+(defn indexed [s]
+  (map vector (iterate inc 1) s))
+
 (defn indexed-set [seq]
-  (into #{} (apply sorted-set-by (fn [x y] (< (first x) (first y))) (map vector (iterate inc 1) seq))))
+  (into #{} (apply sorted-set-by (fn [x y] (< (first x) (first y))) indexed seq)))
 
 (defn difference-category
   "returns map which has the set of deleted value and index with :deleted key

@@ -215,7 +215,7 @@
   "if the request parameter don't contain page, use default page 1."
   [req]
   (let [page (get-in req [:params "page"])
-        current-page (if page (Integer/parseInt page) 1)
+        current-page (if page (Long/parseLong page) 1)
         entry-count (get-total-entry-count (*dac*))
         count-per-page (:count-per-page *config*)
         total-page (calc-total-page entry-count count-per-page)]
@@ -229,7 +229,7 @@
              total-page))))
 
 (defn view-entry [req]
-  (let [id (Integer/parseInt (get-in req [:params "id"])),
+  (let [id (Long/parseLong (get-in req [:params "id"])),
         entry (get-entry-by-id (*dac*) id)]
     (if entry
       (res200 (categolj-layout
@@ -268,7 +268,7 @@
     (redirect "/")))
 
 (defn view-edit [req]
-  (let [id (Integer/parseInt (get-in req [:params "id"])),
+  (let [id (Long/parseLong (get-in req [:params "id"])),
         entry (get-entry-by-id (*dac*) id)]
     (if entry
       (res200 (categolj-layout
@@ -282,7 +282,7 @@
       (not-found req))))
 
 (defn do-edit [req]
-  (let [id (Integer/parseInt (get-in req [:params "id"])),
+  (let [id (Long/parseLong (get-in req [:params "id"])),
         updated-at
         (if (get-in req [:params "update-date"])
           (java.util.Date.) ; if "update-date" is on, set the current date to "upadate-at".
@@ -302,7 +302,7 @@
      
 
 (defn view-delete [req]
-  (let [id (Integer/parseInt (get-in req [:params "id"])),
+  (let [id (Long/parseLong (get-in req [:params "id"])),
         entry (get-entry-by-id (*dac*) id)]
     (if entry
       (res200 (categolj-layout
@@ -316,7 +316,7 @@
       (not-found req))))
 
 (defn do-delete [req]
-  (let [id (Integer/parseInt (get-in req [:params "id"])),
+  (let [id (Long/parseLong (get-in req [:params "id"])),
         entry (get-entry-by-id (*dac*) id)]
     (log/info "delete entry =" entry)
     (if entry
@@ -326,7 +326,7 @@
 (defn view-category [req]
   (let [category (split-by-slash (get-in req [:params "category"]))
         page (get-in req [:params "page"])
-        current-page (if page (Integer/parseInt page) 1)
+        current-page (if page (Long/parseLong page) 1)
         entry-count (get-categorized-entry-count (*dac*) category)
         count-per-page (:count-per-page *config*)
         total-page (calc-total-page entry-count count-per-page)]
@@ -373,14 +373,14 @@
     (json-response res)))
 
 (defn json-do-delete-upload-file [req]
-  (let [id (Integer/parseInt (get-in req [:params "id"]))
+  (let [id (Long/parseLong (get-in req [:params "id"]))
         res (delete-uploaded-file-by-id (*uploader*) id)]
     (log/debug res)
     (json-response res)))
 
 (defn json-view-uploaded-files [req]
-  (let [page (Integer/parseInt (get-in req [:params "page"]))
-        count (Integer/parseInt (get-in req [:params "count"]))
+  (let [page (Long/parseLong (get-in req [:params "page"]))
+        count (Long/parseLong (get-in req [:params "count"]))
         res (get-uploaded-files-by-page (*uploader*) page count)]
     (json-response res)))
 

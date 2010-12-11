@@ -16,10 +16,13 @@
                  [ring-json-params "0.1.2" :exclusions [org.clojure/clojure-contrib]]
                  [enlive "1.0.0-SNAPSHOT" :exclusions [org.clojure/clojure-contrib]]
                  [org.markdownj/markdownj "0.3.0-1.0.2b4"]
+                 [net.java.dev.rome/rome "1.0.0"]
+                 ;; for rdbms
+                 [jp.sf.amateras.mirage/mirage "1.0.5"]
                  [org.hsqldb/hsqldb "2.0.0"]
                  [mysql/mysql-connector-java "5.1.13"]
-                 [jp.sf.amateras.mirage/mirage "1.0.5"]
-                 [net.java.dev.rome/rome "1.0.0"]
+                 ;; for mongodb
+                 ;;[org.mongodb/mongo-java-driver "2.3"]
                  ]
 
   :dev-dependencies [[swank-clojure "1.3.0-SNAPSHOT"]
@@ -41,4 +44,5 @@
   :java-source-path "src/main/java"
   :javac-fork "true"
   :jar-exclusions [#"(?:^|/).svn/"]
+  :main am.ik.categolj.run
   :run-aliases {:server [am.ik.categolj.run -main]})

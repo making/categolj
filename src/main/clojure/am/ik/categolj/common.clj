@@ -23,8 +23,17 @@
                            "/")])
          category-seq (range (count category-seq)))))
 
+(defn keys-to [f m]
+  (zipmap (map f (keys m)) (vals m)))
+
 (defn keys-to-name [m]
-  (zipmap (map name (keys m)) (vals m)))
+  (keys-to name m))
+
+(defn keys-to-symbol [m]
+  (keys-to symbol m))
+
+(defn keys-to-keyword [m]
+  (keys-to keyword m))
 
 (defn indexed-set [seq]
   (into #{} (apply sorted-set-by (fn [x y] (< (first x) (first y))) (map vector (iterate inc 1) seq))))

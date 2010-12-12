@@ -22,7 +22,7 @@
                  [org.hsqldb/hsqldb "2.0.0"]
                  [mysql/mysql-connector-java "5.1.13"]
                  ;; for mongodb
-                 ;;[org.mongodb/mongo-java-driver "2.3"]
+                 [org.mongodb/mongo-java-driver "2.3"]
                  ]
 
   :dev-dependencies [[swank-clojure "1.3.0-SNAPSHOT"]

@@ -24,6 +24,14 @@
                          :user "sa"
                          :password ""}
                     }},
+ ;; Mongodb
+ ;; :daccess {:ns am.ik.categolj.daccess.mongodb.daccess
+ ;;           :params {
+ ;;                    :db "categolj"
+ ;;                    :host "localhost"
+ ;;                    :port 27017}
+           }
+ 
  ;; uploader
  :uploader {:ns am.ik.categolj.uploader.simple-uploader,
             :params {:upload-dir "/upload/",

@@ -147,6 +147,17 @@
   [:input#field-referer]
   (en/set-attr :value referer)
   )
+
+(en/defsnippet categolj-all-categories
+  (get-template "all-categories.html")
+  [:div.contents]
+  [category-anchor-list]
+  [:.category]
+  (en/clone-for
+   [anchor category-anchor-list]
+   [:.category]
+   (en/html-content anchor)
+   ))
 ;;
 
 ;; templates
@@ -367,6 +378,19 @@
   (let [res (redirect "/")]
     (assoc-in res [:session :user] nil)))
 
+(defn view-all-categories [req]
+  (let [all-category (get-all-category-list (*dac*))]
+    (res200 (categolj-layout
+             req
+             (str (:title *config*))
+             (en/substitute (categolj-all-categories
+                             (map get-category-anchor (get-all-category-list (*dac*)))))
+             (en/html-content "All Cateories")
+             1
+             0 ; single page
+             ))
+    ))
+
 (defn json-do-upload [req]
   (let [file (get-in req [:params "file"])
         res (upload (*uploader*) file)]
@@ -415,6 +439,7 @@
   (GET ["/login"] req (view-login req))
   (POST ["/login"] req (do-login req))
   (GET ["/logout"] req (do-logout req))
+  (GET "/all" req (view-all-categories req))
   (POST ["/upload/delete/:id*", :id #"[0-9]+"] req
         (check-auth-json json-do-delete-upload-file req))
   (GET ["/upload/view/:page/:count*", :page #"[0-9]+", :count #"[0-9]+"] req
@@ -459,7 +484,7 @@
            (trace-request excludes)
            (wrap-static (.getPath (get-resource (str *theme-dir* "/public/"))) (:static-dir *config*))
            (wrap-static (.getPath (java.io.File. ".")) [upload-dir])
-           ;;(wrap-reload '(am.ik.categolj.core am.ik.categolj.common)) ;; hot reloading
+;;           (wrap-reload '(am.ik.categolj.core am.ik.categolj.common)) ;; hot reloading
            (trace-response excludes)
            (wrap-stacktrace)
            )))

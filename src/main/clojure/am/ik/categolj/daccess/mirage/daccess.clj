@@ -46,7 +46,6 @@
 
 (defn %get-count-by-sql [^Session session sql-file params]
   (%get-single-entity-by-sql session Long sql-file params))
-  
 
 (defn get-sql-path [subprotocol file-name]
   (log/debug (str "sqlfile=" subprotocol "/" file-name))
@@ -84,6 +83,14 @@
 
 (defn ^java.util.List %get-categories-by-entry-id [subprotocol ^Session session params]
   (%get-entities-by-sql session CategoryEntity (get-sql-path subprotocol "get-categories-by-entry-id.sql") params))
+
+(defn %get-all-category[^Session session]
+  (let [^SqlManager manager (.getSqlManager session)]
+    (.getResultListBySql manager CategoryEntity "SELECT * FROM Category")))
+
+(defn %get-all-entry-cateogry [^Session session]
+  (let [^SqlManager manager (.getSqlManager session)]
+    (.getResultListBySql manager EntryCategory "SELECT * FROM EntryCategory")))
 
 (defn ^java.util.List %get-entries-by-page [subprotocol ^Session session params]
   (%get-entities-by-sql session EntryEntity (get-sql-path subprotocol "get-entries-by-page.sql") params))
@@ -210,6 +217,29 @@
        (%get-entry-count subprotocol session
                          {"index" (first target), "name" (second target)}))))
 
+  (get-all-category-list
+   [this]
+   (with-tx [session]
+     ;; silly implementation!! (due to Mirage...)
+     (let [cs (%get-all-category session)
+           cs (sort (fn [^CategoryEntity x ^CategoryEntity y] ; shold be done in sql...
+                      (< (.index x) (.index y))) cs)
+           ecs (%get-all-entry-cateogry session)
+           c-map (zipmap (map #(.id ^CategoryEntity %) cs) cs)
+           ^java.util.Map m (java.util.HashMap.)]
+       (doseq [^EntryCategory ec ecs]
+         (let [cid (.categoryId ec)
+               eid (.entryId ec)
+               ^CategoryEntity c (get c-map cid)]
+           (if-not (contains? m eid)
+             (.put m eid (java.util.HashMap.)))
+           (let [e (get m eid)]
+             (.put ^java.util.Map e (.index c) (name c)))))
+       (let [^java.util.Set s (java.util.TreeSet.
+                               (fn [x y] (compare (apply str x) (apply str y))))]
+         (.addAll s (map #(into [] (vals %)) (vals m)))
+         s))))
+  
   (auth-user
    [this user]
    (let [name (:name user)

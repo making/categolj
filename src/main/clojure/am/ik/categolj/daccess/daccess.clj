@@ -13,6 +13,7 @@
   (insert-entry [this entry])
   (update-entry [this entry])
   (delete-entry [this entry])
+  (get-all-category-list [this])
   ;; user
   (auth-user [this user])
   (get-user-by-id [this id])

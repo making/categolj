@@ -1,7 +1,8 @@
-(defproject categolj "1.0.0-alpha1"
+(defproject categolj "1.0.0-alpha1-SNAPSHOT"
   :description "FIXME: write"
   :repositories {"scala-tools" "http://scala-tools.org/repo-releases",
-                 "amateras" "http://amateras.sourceforge.jp/mvn/"}
+                 "amateras" "http://amateras.sourceforge.jp/mvn/",
+                 "riptano" "http://mvn.riptano.com/content/repositories/public/"}
   :dependencies [[org.clojure/clojure "1.3.0-alpha3"]
                  [org.clojure.contrib/def "1.3.0-alpha3"]
                  [org.clojure.contrib/singleton "1.3.0-alpha3"]
@@ -23,6 +24,8 @@
                  [mysql/mysql-connector-java "5.1.13"]
                  ;; for mongodb
                  [org.mongodb/mongo-java-driver "2.3"]
+                 ;; for cassandra
+                 ;[org.apache.cassandra/apache-cassandra "0.7.0-rc4"]
                  ]
 
   :dev-dependencies [[swank-clojure "1.3.0-SNAPSHOT"]
